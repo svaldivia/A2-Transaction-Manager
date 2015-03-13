@@ -18,6 +18,9 @@ dumpObject: dumpObject.c tworker.h
 cmd: command.c common.c msg.c
 	$(CC) $(CFLAGS) -o cmd command.c common.c msg.c
 
+server: server.c msg.c common.c
+	$(CC) $(CFLAGS) -o server server.c msg.c common.c
+
 cleanlogs:
 	rm -f *.log
 

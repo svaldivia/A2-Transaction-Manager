@@ -64,3 +64,13 @@ __MACOSX/
 ._*
 .Spotlight-V100
 .Trashes
+
+#Executables
+common
+server
+tmanager
+cmd
+tworker
+dumpObject
+
+
