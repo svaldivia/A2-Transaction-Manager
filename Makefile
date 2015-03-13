@@ -9,8 +9,8 @@ CFLAGS=-g -Werror-implicit-function-declaration -pedantic -std=c99
 tworker: tworker.h msg.h tworker.c
 	$(CC) $(CFLAGS) -o tworker tworker.c
 
-tmanager: tmanager.c msg.h
-	$(CC) $(CFLAGS) -o tmanager tmanager.c
+tmanager: tmanager.c msg.c common.c server.c
+	$(CC) $(CFLAGS) -o tmanager tmanager.c common.c server.c msg.c
 
 dumpObject: dumpObject.c tworker.h
 	$(CC) $(CFLAGS) -o dumpObject dumpObject.c

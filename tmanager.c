@@ -12,6 +12,7 @@
 #include "common.h"
 #include "msg.h"
 #include "tmanager.h"
+#include "server.h"
 
 int main(int argc, char ** argv) 
 {
@@ -20,25 +21,27 @@ int main(int argc, char ** argv)
     int  port;
 
     if (argc != 2) {
-        printf("usage: %s  portNum\n", argv[0]);
+        printf("usage: %s portNum\n", argv[0]);
         return -1;
     }
 
+    /* Port & log file name */
     port = atoi(argv[1]);
-
     snprintf(logFileName, sizeof(logFileName), "TmanagerLog_%d.log", port);
 
-    logfileFD = open(logFileName, O_RDWR | O_CREAT | O_SYNC, S_IRUSR | S_IWUSR );
-    if (logfileFD < 0 ) {
-        printf("Could not open log file %s\n", logFileName);
-        return -1;
-    }
-
-    printf("Starting up Transaction Manager\n"); 
     printf("Port number:              %d\n", port);
     printf("Log file name:            %s\n", logFileName);
 
     /* Set up server */
+    server_t* server = NULL;
+    server_alloc(&server, port, 10, logFileName);
+
+    server_listen(server);
+
+    message_t msg;
+    while(1) {
+        server_recv(server, &msg);
+    }
 
     return 0;
 }

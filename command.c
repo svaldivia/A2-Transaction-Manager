@@ -144,11 +144,14 @@ int read_command()
 /* extend this to a complete message sending function... */
 void send_message(char* worker_host, uint32_t worker_port, message_t* msg) 
 {
-    struct in_addr address;
-    if (resolve_host(worker_host, &address) != 0)
+    struct sockaddr_in host;
+    if (resolve_host(worker_host, &host.sin_addr) != 0)
         return;
 
-    printf("Sending %s to %s:%d\n", message_string(msg), inet_ntoa(address), worker_port);
+    host.sin_family = AF_INET;
+    host.sin_port = htons(worker_port);
+
+    printf("Sending %s to %s:%d\n", message_string(msg), inet_ntoa(host.sin_addr), worker_port);
 
     /* Convert to network byte order */
     message_to_nbo(msg);
@@ -160,7 +163,7 @@ void send_message(char* worker_host, uint32_t worker_port, message_t* msg)
         exit(-1);
     }
 
-    size_t sent = sendto(sockfd, (void*)msg, sizeof(message_t), 0, (struct sockaddr*)&address, sizeof(address));
+    size_t sent = sendto(sockfd, (void*)msg, sizeof(message_t), 0, (struct sockaddr*)&host, sizeof(host));
     close(sockfd);
 }
 

@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <unistd.h>
 
 
 /* create server instance */
@@ -72,7 +73,7 @@ int server_listen(server_t* server){
 }
 
 /* shuts down the server and frees its memory */
-void server_shutdown(server_t**){
+void server_shutdown(server_t** server_ptr){
     if (server_ptr == NULL)
         return;
     server_t* server = *server_ptr;
@@ -90,12 +91,13 @@ int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t
 
     /* */
     struct in_addr dest_address;
-    resolve_host(dest_host,&dest_addess);
+    resolve_host(dest_host, &dest_address);
 
     /* set message information */
     /* TODO */
 
     /* sendto */ 
+    int numbytes;
     if ((numbytes = sendto(server->socket_id,(void*)msg, sizeof(message_t), 0,(struct sockaddr *) &dest_address, sizeof(dest_address)) == -1)) {
         perror("server: send");         
         exit(1);                  
@@ -127,7 +129,7 @@ int  server_recv_timeout(server_t* server, message_t* message, int timeout){
     int n = select(server->socket_id + 1, &fds, NULL, NULL, &timeout_val);
     if (n == 0) {
         /* timeout */
-        return ERROR_TIMEOUT;
+        return -1;
     }
     if (n == -1) {
         fprintf(stderr, "Select error, wtf!\n");
@@ -142,6 +144,8 @@ int  server_recv_timeout(server_t* server, message_t* message, int timeout){
 
     /* Handle Message */
     message_from_nbo(message);
+
+    printf("Recieved message %s\n", message_string(message));
 
     return (int)len;
 
