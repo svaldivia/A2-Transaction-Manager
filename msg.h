@@ -53,4 +53,6 @@ void message_write_vote_abort(message_t* msg);
 void message_to_nbo(message_t* msg);
 void message_from_nbo(message_t* msg);
 
+const char* message_string(message_t* msg);
+
 #endif 

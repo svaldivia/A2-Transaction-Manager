@@ -147,7 +147,7 @@ void send_message(char* worker_host, uint32_t worker_port, message_t* msg)
     struct in_addr address;
     resolve_host(worker_host, &address);
 
-    printf("Sending %s to %s:%d\n", "PACKET", inet_ntoa(address), worker_port);
+    printf("Sending %s to %s:%d\n", message_string(msg), inet_ntoa(address), worker_port);
 
     /* Convert to network byte order */
     message_to_nbo(msg);
@@ -159,7 +159,7 @@ void send_message(char* worker_host, uint32_t worker_port, message_t* msg)
         exit(-1);
     }
 
-    size_t sent = sendto(sockfd, (void*)&msg, sizeof(message_t), 0, (struct sockaddr*) &address, sizeof(address));
+    size_t sent = sendto(sockfd, (void*)msg, sizeof(message_t), 0, (struct sockaddr*)&address, sizeof(address));
     close(sockfd);
 }
 
@@ -172,6 +172,7 @@ void do_begin() {
     message_t msg;
     message_init(&msg, NULL);
     message_write_begin(&msg, cmd_args[3], atoi(cmd_args[4]), atoi(cmd_args[5]));
+    
     send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
@@ -180,6 +181,12 @@ void do_join() {
         printf("usage: join [worker_host] [worker_port] [tm_host] [tm_port] [tid]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_join(&msg, cmd_args[3], atoi(cmd_args[4]), atoi(cmd_args[5]));
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
 void do_newa() { 
@@ -187,6 +194,12 @@ void do_newa() {
         printf("usage: newa [worker_host] [worker_port] [new value]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_new_A(&msg, atoi(cmd_args[3]));
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
 void do_newb() { 
@@ -194,6 +207,12 @@ void do_newb() {
         printf("usage: newb [worker_host] [worker_port] [new value]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_new_B(&msg, atoi(cmd_args[3]));
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
 void do_newid() { 

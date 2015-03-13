@@ -32,8 +32,6 @@ int resolve_host(char* host, struct in_addr* out_addr)
     addr = (struct sockaddr_in*)result->ai_addr;
     memcpy(out_addr, &addr->sin_addr, sizeof(struct in_addr));
 
-    printf("Resolved %s to %s\n", host, inet_ntoa(*out_addr));
-
     freeaddrinfo(result);
     return 0;
 }

@@ -112,3 +112,20 @@ void message_from_nbo(message_t* msg)
         msg->vclock[i].time   = ntohl(msg->vclock[i].time);
     }
 }
+
+const char* message_string(message_t* msg) 
+{
+    switch(msg->type) {
+        case BEGINTX:       return "Begin Transaction";
+        case JOINTX:        return "Join Transaction";
+        case NEW_A:         return "New A";
+        case NEW_B:         return "New B";
+        case NEW_IDSTR:     return "New ID String";
+        case COMMIT:        return "Commit";
+        case COMMIT_CRASH:  return "Commit Crash";
+        case ABORT:         return "Abort";
+        case ABORT_CRASH:   return "Abort Crash";
+        case VOTE_ABORT:    return "Vote Abort";
+        default:            return "Unknown";
+    }
+}
