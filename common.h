@@ -5,7 +5,7 @@
 #include <sys/time.h>
 
 #define MAX_NODES 10
-#define HOSTLEN 64
+#define HOSTLEN   64
 #define IDLEN     64
 
 /* resolve the given hostname and store the address in the node struct */
@@ -17,5 +17,7 @@ struct vclock_t {
 };
 
 typedef struct vclock_t vclock_t;
+
+void vclock_update(vclock_t* mine, vclock_t* other);
 
 #endif

@@ -37,3 +37,7 @@ int resolve_host(char* host, struct in_addr* out_addr)
     freeaddrinfo(result);
     return 0;
 }
+
+void vclock_update(vclock_t* mine, vclock_t* other)
+{
+} 

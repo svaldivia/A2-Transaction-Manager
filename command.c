@@ -3,9 +3,11 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <unistd.h>
 #include <netinet/in.h>
  
 #include "common.h"
+#include "msg.h"
 
 #define CMD_BUFFER_SIZE (512)
 #define CMD_SIZE (128)
@@ -67,7 +69,7 @@ int main(int argc, char* argv[])
         if (strncmp(cmd_name, "abortcrash", 10)  == 0) { do_abort_crash();  continue; }
         if (strncmp(cmd_name, "voteabort", 9)    == 0) { do_vote_abort();   continue; }
 
-        if (strncmp(cmd_name, "exit", 4) || strncmp(cmd_name, "quit", 4))
+        if (strncmp(cmd_name, "exit", 4) == 0 || strncmp(cmd_name, "quit", 4) == 0)
             break;
 
         printf("Unknown command '%s'\n", cmd_name);
@@ -140,11 +142,25 @@ int read_command()
 }
 
 /* extend this to a complete message sending function... */
-void send_message(char* worker_host, unsigned short worker_port) {
+void send_message(char* worker_host, uint32_t worker_port, message_t* msg) 
+{
     struct in_addr address;
     resolve_host(worker_host, &address);
 
-    printf("Connecting to %s:%d...\n", worker_host, worker_port);
+    printf("Sending %s to %s:%d\n", "PACKET", inet_ntoa(address), worker_port);
+
+    /* Convert to network byte order */
+    message_to_nbo(msg);
+
+    int sockfd;
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        printf("Unable to create socket!\n");
+        exit(-1);
+    }
+
+    size_t sent = sendto(sockfd, (void*)&msg, sizeof(message_t), 0, (struct sockaddr*) &address, sizeof(address));
+    close(sockfd);
 }
 
 void do_begin() {
@@ -153,7 +169,10 @@ void do_begin() {
         return;
     }
 
-    send_message(cmd_args[1], atoi(cmd_args[2]));
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_begin(&msg, cmd_args[3], atoi(cmd_args[4]), atoi(cmd_args[5]));
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
 void do_join() { 
