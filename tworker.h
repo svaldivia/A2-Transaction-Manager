@@ -1,4 +1,3 @@
-
 #ifndef TWORKER_H
 #define TWORKER_H 1
 #include <sys/time.h>
@@ -15,10 +14,7 @@ struct clock {
   unsigned int time;
 };
 
-  struct clock   vectorClock[MAX_NODES];
-
-
-
+struct clock vectorClock[MAX_NODES];
 
 typedef     /* got the port number create a logfile name */
 struct {

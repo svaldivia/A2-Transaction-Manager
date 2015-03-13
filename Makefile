@@ -15,7 +15,7 @@ tmanager: tmanager.c msg.h
 dumpObject: dumpObject.c tworker.h
 	$(CC) $(CFLAGS) -o dumpObject dumpObject.c
 
-cmd: cmd.c msg.h
+cmd: command.c common.c msg.h
 	$(CC) $(CFLAGS) -o cmd cmd.c
 
 cleanlogs:

@@ -1,4 +1,3 @@
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -12,33 +11,30 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 
-
 #include "msg.h"
 #include "tworker.h"
-
 
 void usage(char * cmd) {
   printf("usage: %s  portNum\n",
 	 cmd);
 }
 
+int main(int argc, char ** argv) 
+{
+// This is some sample code feel free to delete it
 
-int main(int argc, char ** argv) {
-
-  // This is some sample code feel free to delete it
-  
-  unsigned long  port;
-  char           logFileName[128];
-  char           dataObjectFileName[128];
-  int            logfileFD;
-  int            dataObjectFD;
-  int            vectorLogFD;
-  ObjectData     *objData;
-  int retVal;
-  struct stat    fstatus;
-  if (argc != 2) {
-    usage(argv[0]);
-    return -1;
+unsigned long  port;
+char           logFileName[128];
+char           dataObjectFileName[128];
+int            logfileFD;
+int            dataObjectFD;
+int            vectorLogFD;
+ObjectData     *objData;
+int retVal;
+struct stat    fstatus;
+if (argc != 2) {
+usage(argv[0]);
+return -1;
 }
   
 
@@ -124,8 +120,7 @@ int main(int argc, char ** argv) {
       }
     }
 
-    objData = mmap(NULL, 512, PROT_WRITE|PROT_READ,
-		 MAP_SHARED, dataObjectFD, 0);
+    objData = mmap(NULL, 512, PROT_WRITE|PROT_READ, MAP_SHARED, dataObjectFD, 0);
   
   if (objData == 0) {
     perror("Object data could not be mapped in");

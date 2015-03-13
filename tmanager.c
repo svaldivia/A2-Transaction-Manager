@@ -1,4 +1,3 @@
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -12,24 +11,21 @@
 
 #include "msg.h"
 
-
 void usage(char * cmd) {
-  printf("usage: %s  portNum\n",
-	 cmd);
+    printf("usage: %s  portNum\n", cmd);
 }
 
+int main(int argc, char ** argv) 
+{
+    // This is some sample code feel free to delete it
 
-int main(int argc, char ** argv) {
+    unsigned long  port;
+    char           logFileName[128];
+    int            logfileFD;
 
-  // This is some sample code feel free to delete it
-  
-  unsigned long  port;
-  char           logFileName[128];
-  int            logfileFD;
+    if (argc != 2) {
+        usage(argv[0]);
 
-
-  if (argc != 2) {
-    usage(argv[0]);
     return -1;
 }
   

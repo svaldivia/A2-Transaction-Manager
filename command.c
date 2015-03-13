@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+
+#include <netinet/in.h>
+ 
+#include "common.h"
 
 #define CMD_BUFFER_SIZE (512)
 #define CMD_SIZE (128)
@@ -39,56 +44,30 @@ int main(int argc, char* argv[])
         if (cmd_arg_count == 0)
             continue;
 
-        if (strncmp(cmd_args[0], "begin", 5) == 0) {
-            do_begin();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "join", 4) == 0) {
-            do_join();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "newa", 4) == 0) {
-            do_newa();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "newb", 4) == 0) {
-            do_newb();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "newid", 5) == 0) {
-            do_newid();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "crash", 5) == 0) {
-            do_crash();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "delay", 5) == 0) {
-            do_delay();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "commit", 6) == 0) {
-            do_commit();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "commitcrash", 11) == 0) {
-            do_commit_crash();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "abort", 5) == 0) {
-            do_abort();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "abortcrash", 10) == 0) {
-            do_abort_crash();
-            continue;
-        }
-        if (strncmp(cmd_args[0], "voteabort", 9) == 0) {
-            do_vote_abort();
-            continue;
+        char* cmd_name = cmd_args[0];
+
+        /* make command name all lowercase */
+        int x = 0;
+        while(cmd_name[x] != '\0') {
+            cmd_name[x] = tolower(cmd_name[x]);
+            x++;
         }
 
-        printf("Unknown command '%s'\n", cmd_args[0]);
+        /* Handle commands */
+        if (strncmp(cmd_name, "begin", 5)        == 0) { do_begin();        continue; }
+        if (strncmp(cmd_name, "join", 4)         == 0) { do_join();         continue; }
+        if (strncmp(cmd_name, "newa", 4)         == 0) { do_newa();         continue; }
+        if (strncmp(cmd_name, "newb", 4)         == 0) { do_newb();         continue; }
+        if (strncmp(cmd_name, "newid", 5)        == 0) { do_newid();        continue; }
+        if (strncmp(cmd_name, "crash", 5)        == 0) { do_crash();        continue; }
+        if (strncmp(cmd_name, "delay", 5)        == 0) { do_delay();        continue; }
+        if (strncmp(cmd_name, "commit", 6)       == 0) { do_commit();       continue; }
+        if (strncmp(cmd_name, "commitcrash", 11) == 0) { do_commit_crash(); continue; }
+        if (strncmp(cmd_name, "abort", 5)        == 0) { do_abort();        continue; }
+        if (strncmp(cmd_name, "abortcrash", 10)  == 0) { do_abort_crash();  continue; }
+        if (strncmp(cmd_name, "voteabort", 9)    == 0) { do_vote_abort();   continue; }
+
+        printf("Unknown command '%s'\n", cmd_name);
     }
 
     return 0;
@@ -116,14 +95,22 @@ int read_command()
     int last = 0;
     int arg = 0;
     int len = 0;
-    for(i = 0; i < CMD_BUFFER_SIZE && str[i] != '\0'; i++) 
+
+    /* get rid of whitespace */
+    i = 0;
+    while(isspace(str[i])) {
+        i++;
+        last++;
+    }
+
+    for(; i < CMD_BUFFER_SIZE && str[i] != '\0'; i++) 
     {
         if (arg >= CMD_MAX_ARGS) {
             printf("Maximum arguments reached\n");
             break;
         }
 
-        if (str[i] != ' ')
+        if (!isspace(str[i]))
             continue;
 
         len = i - last;
@@ -149,11 +136,21 @@ int read_command()
     return 1;
 }
 
+/* extend this to a complete message sending function... */
+void send_message(char* worker_host, unsigned short worker_port) {
+    struct in_addr address;
+    resolve_host(worker_host, &address);
+
+    printf("Connecting to %s:%d...\n", worker_host, worker_port);
+}
+
 void do_begin() {
     if (cmd_arg_count != 6) {
         printf("usage: begin [worker_host] [worker_port] [tm_host] [tm_port] [tid]\n");
         return;
     }
+
+    send_message(cmd_args[1], atoi(cmd_args[2]));
 }
 
 void do_join() { 
@@ -185,22 +182,50 @@ void do_newid() {
 }
 
 void do_crash() { 
+    if (cmd_arg_count != 3) {
+        printf("usage: crash [worker_host] [worker_port]\n");
+        return;
+    }
 }
 
 void do_delay() { 
+    if (cmd_arg_count != 4) {
+        printf("usage: delay [worker_host] [worker_port] [delay]\n");
+        return;
+    }
 }
 
 void do_commit() { 
+    if (cmd_arg_count != 3) {
+        printf("usage: crash [worker_host] [worker_port]\n");
+        return;
+    }
 }
 
 void do_commit_crash() { 
+    if (cmd_arg_count != 3) {
+        printf("usage: commitcrash [worker_host] [worker_port]\n");
+        return;
+    }
 }
 
 void do_abort() { 
+    if (cmd_arg_count != 3) {
+        printf("usage: abort [worker_host] [worker_port]\n");
+        return;
+    }
 }
 
 void do_abort_crash() { 
+    if (cmd_arg_count != 3) {
+        printf("usage: abortcrash [worker_host] [worker_port]\n");
+        return;
+    }
 }
 
 void do_vote_abort() { 
+    if (cmd_arg_count != 3) {
+        printf("usage: voteabort [worker_host] [worker_port]\n");
+        return;
+    }
 }

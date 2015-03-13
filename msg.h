@@ -1,5 +1,3 @@
-
-
 #ifndef MSG_H
 #define MSG_H 1
 #include "tworker.h"
@@ -8,7 +6,7 @@
 #define HOSTLEN IDLEN
 
 enum cmdMsgKind {
-        BEGINTX = 1000,
+    BEGINTX = 1000,
 	JOINTX,
 	NEW_A,
 	NEW_B,
@@ -18,15 +16,13 @@ enum cmdMsgKind {
 	COMMIT,
 	COMMIT_CRASH,
 	ABORT, 
-        ABORT_CRASH, 
+    ABORT_CRASH, 
 	VOTE_ABORT
 };
-
 
 // The following is not the best approach/format for the command messages
 // but it is simple and it will fit in one packet. Which fields have 
 // usable values will depend upon the type of the command message.
-
 
 typedef struct  {
   uint32_t   msgID;      
@@ -39,6 +35,5 @@ typedef struct  {
     char           hostName[HOSTLEN];
   } strData;
 } msgType;
-  
 
 #endif 
