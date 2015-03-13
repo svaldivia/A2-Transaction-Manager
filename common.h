@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdint.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
 
@@ -18,6 +19,6 @@ struct vclock_t {
 
 typedef struct vclock_t vclock_t;
 
-void vclock_update(vclock_t* mine, vclock_t* other);
+void vclock_update(uint32_t my_id, vclock_t* mine, vclock_t* other);
 
 #endif

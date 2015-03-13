@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -25,7 +26,7 @@ int resolve_host(char* host, struct in_addr* out_addr)
     if (error != 0) {
         /* blow up */
         fprintf(stderr, "Failed resolving hostname %s\n", host);
-        exit(-1);
+        return -1;
     }
 
     /* copy address to result */
@@ -36,8 +37,44 @@ int resolve_host(char* host, struct in_addr* out_addr)
     return 0;
 }
 
-void vclock_update(vclock_t* mine, vclock_t* other)
+void vclock_update(uint32_t my_id, vclock_t* mine, vclock_t* other)
 {
+    /* For each other clock... */
+    int i;
+    for(i = 0; i < MAX_NODES; i++) 
+    {
+        /* Dont update empty nodes or our clock */
+        if (other[i].nodeId == 0 || other[i].nodeId == my_id)
+            continue;
+
+        /* Find and update (or add if neccessary) our local version */
+        int firstEmpty = -1;
+        int index = -1;
+        int j;
+        for(j = 0; j < MAX_NODES; j++) 
+        {
+            if (mine[j].nodeId == 0)
+                firstEmpty = j;
+
+            if (mine[j].nodeId == other[i].nodeId) {
+                index = j;
+                break;
+            }
+        }
+
+        /* It exists! */
+        if (index > 0) {
+            if (mine[index].time < other[i].time)
+                mine[index].time = other[i].time;
+            continue;
+        }
+
+        /* Does not yet exist but we have room for it in our array */
+        if (firstEmpty > 0) {
+            mine[firstEmpty] = other[i];
+            continue;
+        }
+
+        printf("Cannot update vector clock for node %d: Maximum nodes reached\n", other[i].nodeId);
+    }
 } 
-
-

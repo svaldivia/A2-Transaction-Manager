@@ -145,7 +145,8 @@ int read_command()
 void send_message(char* worker_host, uint32_t worker_port, message_t* msg) 
 {
     struct in_addr address;
-    resolve_host(worker_host, &address);
+    if (resolve_host(worker_host, &address) != 0)
+        return;
 
     printf("Sending %s to %s:%d\n", message_string(msg), inet_ntoa(address), worker_port);
 
@@ -163,7 +164,8 @@ void send_message(char* worker_host, uint32_t worker_port, message_t* msg)
     close(sockfd);
 }
 
-void do_begin() {
+void do_begin() 
+{
     if (cmd_arg_count != 6) {
         printf("usage: begin [worker_host] [worker_port] [tm_host] [tm_port] [tid]\n");
         return;
@@ -176,7 +178,8 @@ void do_begin() {
     send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_join() { 
+void do_join() 
+{ 
     if (cmd_arg_count != 6) {
         printf("usage: join [worker_host] [worker_port] [tm_host] [tm_port] [tid]\n");
         return;
@@ -189,7 +192,8 @@ void do_join() {
     send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_newa() { 
+void do_newa() 
+{ 
     if (cmd_arg_count != 4) {
         printf("usage: newa [worker_host] [worker_port] [new value]\n");
         return;
@@ -202,7 +206,8 @@ void do_newa() {
     send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_newb() { 
+void do_newb() 
+{ 
     if (cmd_arg_count != 4) {
         printf("usage: newb [worker_host] [worker_port] [new value]\n");
         return;
@@ -215,58 +220,114 @@ void do_newb() {
     send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_newid() { 
+void do_newid() 
+{ 
     if (cmd_arg_count != 4) {
         printf("usage: newid [worker_host] [worker_port] [new value]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_new_ID(&msg, cmd_args[3]);
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_crash() { 
+void do_crash() 
+{ 
     if (cmd_arg_count != 3) {
         printf("usage: crash [worker_host] [worker_port]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_crash(&msg);
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_delay() { 
+void do_delay() 
+{ 
     if (cmd_arg_count != 4) {
         printf("usage: delay [worker_host] [worker_port] [delay]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_delay(&msg, atoi(cmd_args[3]));
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_commit() { 
+void do_commit() 
+{ 
     if (cmd_arg_count != 3) {
         printf("usage: crash [worker_host] [worker_port]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_commit(&msg);
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_commit_crash() { 
+void do_commit_crash() 
+{ 
     if (cmd_arg_count != 3) {
         printf("usage: commitcrash [worker_host] [worker_port]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_commit_crash(&msg);
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_abort() { 
+void do_abort() 
+{ 
     if (cmd_arg_count != 3) {
         printf("usage: abort [worker_host] [worker_port]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_abort(&msg);
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_abort_crash() { 
+void do_abort_crash() 
+{ 
     if (cmd_arg_count != 3) {
         printf("usage: abortcrash [worker_host] [worker_port]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_abort_crash(&msg);
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
 
-void do_vote_abort() { 
+void do_vote_abort() 
+{ 
     if (cmd_arg_count != 3) {
         printf("usage: voteabort [worker_host] [worker_port]\n");
         return;
     }
+
+    message_t msg;
+    message_init(&msg, NULL);
+    message_write_vote_abort(&msg);
+    
+    send_message(cmd_args[1], atoi(cmd_args[2]), &msg);
 }
