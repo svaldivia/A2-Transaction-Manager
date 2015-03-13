@@ -1,11 +1,9 @@
 #ifndef MSG_H
 #define MSG_H 1
-#include "tworker.h"
 #include <stdint.h>
+#include "common.h"
 
-#define HOSTLEN IDLEN
-
-enum cmdMsgKind {
+enum cmdType {
     BEGINTX = 1000,
 	JOINTX,
 	NEW_A,
@@ -20,20 +18,25 @@ enum cmdMsgKind {
 	VOTE_ABORT
 };
 
+typedef enum cmdType cmdType;
+
 // The following is not the best approach/format for the command messages
 // but it is simple and it will fit in one packet. Which fields have 
 // usable values will depend upon the type of the command message.
 
-typedef struct  {
-  uint32_t   msgID;      
+typedef struct 
+{
+  cmdType    type;      
   uint32_t   tid;        // Transaction ID
   uint32_t   port;
   int32_t    newValue;   // New value for A or B
   int32_t    delay;
+
   union {  // string data
-    char           newID[IDLEN];
-    char           hostName[HOSTLEN];
+    char     newID[IDLEN];
+    char     hostName[HOSTLEN];
   } strData;
-} msgType;
+
+} message_t;
 
 #endif 

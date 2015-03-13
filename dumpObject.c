@@ -50,7 +50,7 @@ int main(int argc, char ** argv) {
   } 
   
   snprintf(dataObjectFileName, sizeof(dataObjectFileName), 
-	   "WorkerData_%d.data", port);
+	   "WorkerData_%ld.data", port);
   
   dataObjectFD = open(dataObjectFileName, O_RDONLY);
   if (dataObjectFD < 0 ) {

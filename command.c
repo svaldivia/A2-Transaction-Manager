@@ -67,6 +67,9 @@ int main(int argc, char* argv[])
         if (strncmp(cmd_name, "abortcrash", 10)  == 0) { do_abort_crash();  continue; }
         if (strncmp(cmd_name, "voteabort", 9)    == 0) { do_vote_abort();   continue; }
 
+        if (strncmp(cmd_name, "exit", 4) || strncmp(cmd_name, "quit", 4))
+            break;
+
         printf("Unknown command '%s'\n", cmd_name);
     }
 
