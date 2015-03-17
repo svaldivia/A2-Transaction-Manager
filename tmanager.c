@@ -40,7 +40,7 @@ int main(int argc, char ** argv)
     uint32_t  recv_port;
     message_t msg;
     while(1) {
-        server_recv(server, &msg);
+        server_recv(server, &msg, &recv_port);
 
         /* Update vector clock */
 

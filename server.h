@@ -20,7 +20,7 @@ struct server_t
 typedef struct server_t server_t;
 
 /* create server instance */
-int server_alloc(server_t** server_ptr, int port, int timeout, const char* logFile);
+int server_alloc(server_t** server_ptr, int port, int timeout);
 
 /* Bind the socket to the server */
 int server_listen(server_t* server);
@@ -32,7 +32,7 @@ void server_shutdown(server_t**);
 int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t* msg);
 
 /* recieve from node */
-int  server_recv(server_t* server, message_t* message);
-int  server_recv_timeout(server_t* server, message_t* message, int timeout);
+int  server_recv(server_t* server, message_t* message, uint32_t* recv_port);
+int  server_recv_timeout(server_t* server, message_t* message, uint32_t* recv_port, int timeout);
 
 #endif
