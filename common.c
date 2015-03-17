@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <assert.h>
 
 int resolve_host(char* host, struct in_addr* out_addr)
 {
@@ -37,8 +38,18 @@ int resolve_host(char* host, struct in_addr* out_addr)
     return 0;
 }
 
+void vclock_init(vclock_t* vclock) 
+{
+    assert(vclock != NULL);
+
+    memset((void*)vclock, 0, sizeof(vclock_t));
+}
+
 void vclock_update(uint32_t my_id, vclock_t* mine, vclock_t* other)
 {
+    assert(mine != NULL);
+    assert(other != NULL);
+
     /* For each other clock... */
     int i;
     for(i = 0; i < MAX_NODES; i++) 

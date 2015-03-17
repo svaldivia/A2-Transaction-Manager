@@ -14,6 +14,8 @@
 #include "tmanager.h"
 #include "server.h"
 
+vclock tm_clock;
+
 int main(int argc, char ** argv) 
 {
     char logFileName[128];
@@ -32,6 +34,9 @@ int main(int argc, char ** argv)
     printf("Port number:              %d\n", port);
     printf("Log file name:            %s\n", logFileName);
 
+    /* Init vector clock */
+    vclock_init(&tm_clock);
+
     /* Set up server */
     server_t* server = NULL;
     server_alloc(&server, port, 10);
@@ -43,6 +48,7 @@ int main(int argc, char ** argv)
         server_recv(server, &msg, &recv_port);
 
         /* Update vector clock */
+        vclock_update(port, &tm_clock, msg.vclock);
 
         /* Handle message */
         switch(msg.type) {
