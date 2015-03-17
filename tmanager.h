@@ -2,8 +2,10 @@
 #define TMANAGER_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "common.h"
+#include "server.h"
 
 #define MAX_TRANSACTIONS (4)
 
@@ -15,10 +17,13 @@ struct transaction_t {
 
 typedef struct transaction_t transaction_t;
 
-struct txmanager_t {
-    uint32_t      port;
+struct txmanager_t 
+{
+    server_t*     server;
+    FILE*         logfile;
     vclock_t      vclock[MAX_NODES];
     transaction_t transactions[MAX_TRANSACTIONS];
+    uint32_t      port;
 };
 
 typedef struct txmanager_t txmanager_t;

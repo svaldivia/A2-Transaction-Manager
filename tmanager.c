@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <netinet/udp.h>
-#include <stdio.h>
+#include <stdint.h>
 #include <errno.h>
 #include <stdlib.h>
 
@@ -34,13 +34,21 @@ int main(int argc, char ** argv)
 
     /* Set up server */
     server_t* server = NULL;
-    server_alloc(&server, port, 10, logFileName);
-
+    server_alloc(&server, port, 10);
     server_listen(server);
 
+    uint32_t  recv_port;
     message_t msg;
     while(1) {
         server_recv(server, &msg);
+
+        /* Update vector clock */
+
+        /* Handle message */
+        switch(msg.type) {
+            case BEGINTX:
+                break;
+        }
     }
 
     return 0;
