@@ -12,7 +12,7 @@
 
 
 /* create server instance */
-int server_alloc(server_t** server_ptr, int port, int timeout, const char* logFile){
+int server_alloc(server_t** server_ptr, int port, int timeout){
     server_t* server = malloc(sizeof(server_t));
     if (server == NULL) {
         printf("Failed to allocate server struct\n");
@@ -22,14 +22,6 @@ int server_alloc(server_t** server_ptr, int port, int timeout, const char* logFi
     /* Set server info */
     server->port = port;
     server->timeout = timeout;
-    
-    /* log to standard output */
-/*
-    if (strncmp(logFile, "stdout", 6) == 0) {
-        server->log = stdout;
-    }*/
-
-    /* Initialize connection */
     
     /* Setup socket address */
     memset((void*)&server->address, 0, sizeof(struct sockaddr_in));
@@ -106,10 +98,15 @@ int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t
 }
 
 /* recieve from node */
-int  server_recv(server_t* server, message_t* message){
+int  server_recv(server_t* server, message_t* message, uint32_t* recv_port){
     return server_recv_timeout(server,message, server->timeout);
 }
-int  server_recv_timeout(server_t* server, message_t* message, int timeout){
+int  server_recv_timeout(server_t* server, message_t* message, uint32_t* recv_port, int timeout)
+{
+    assert(server != NULL);
+    assert(message != NULL);
+    assert(recv_port != NULL);
+    *recv_port = 0;
     
     ssize_t len;
     struct sockaddr_in sender_addr;
@@ -138,17 +135,11 @@ int  server_recv_timeout(server_t* server, message_t* message, int timeout){
 
     len = recvfrom(server->socket_id, (void*)message, sizeof(message_t), flags, (struct sockaddr*)&sender_addr, &addr_size);
     
-    /* Handle received data */
+    /* Pass sender port */
+    *recv_port = ntohs(sender_addr.sin_port);
 
-    int id = ntohs(sender_addr.sin_port);
-
-    /* Handle Message */
+    /* Convert from network byte order */
     message_from_nbo(message);
 
-    printf("Recieved message %s\n", message_string(message));
-
     return (int)len;
-
 }
-
-
