@@ -11,8 +11,11 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 
+#include "common.h"
 #include "msg.h"
 #include "tworker.h"
+#include "server.h"
+
 
 void usage(char * cmd) {
   printf("usage: %s  portNum\n",
@@ -23,7 +26,7 @@ int main(int argc, char ** argv)
 {
 // This is some sample code feel free to delete it
 
-unsigned long  port;
+int            port;
 char           logFileName[128];
 char           dataObjectFileName[128];
 int            logfileFD;
@@ -32,12 +35,12 @@ int            vectorLogFD;
 ObjectData     *objData;
 int retVal;
 struct stat    fstatus;
+
+/* Check cmd line input*/
 if (argc != 2) {
 usage(argv[0]);
 return -1;
 }
-  
-
 
   char * end;
   int err = 0;
@@ -46,62 +49,56 @@ return -1;
   if (argv[1] == end) {
     printf("Port conversion error\n");
     err++;
-  } else {
-    /* got the port number create a logfile name */
-    snprintf(logFileName, sizeof(logFileName), "WorkerLog_%d.log", port);
+  }  
+  
+    printf("Starting up transaction worker on %d\n", port);
+    printf("Port number:                      %d\n", port);
+    printf("Log file name:                    %s\n", logFileName);
 
-    logfileFD = open(logFileName, O_RDWR | O_CREAT | O_SYNC, S_IRUSR | S_IWUSR );
-    if (logfileFD < 0 ) {
-      char msg[256];
-      snprintf(msg, sizeof(msg), "Opening %s failed", logFileName);
-      perror(msg);
-      err++;
+    /* Set up server */
+    server_t* server = NULL;
+    server_alloc(&server,port, 10);
+
+    server_listen(server);
+
+    uint32_t recv_port;
+    message_t msg;
+
+    while(1){
+    server_recv(server,&msg,&recv_port);
+
+    /* Handle Message */
+    switch (msg.type){
+        case BEGINTX:
+            // Send message to transaction manager
+           server_send(server,msg.strdata,msg.port,&msg);
+            break;
+        case JOINTX:
+            break;
+        case NEW_A:
+            break;
+        case NEW_B:
+            break;
+        case NEW_IDSTR:
+            break;
+        case DELAY_RESPONSE:
+            break;
+        case CRASH:
+            break;
+        case COMMIT:
+            break;
+        case COMMIT_CRASH:
+            break;
+        case ABORT:
+            break;
+        case ABORT_CRASH:
+            break;
+        case VOTE_ABORT:
+            break;
+        }
     }
-  }
-  
-    /* Open/create the data object file */
 
-    snprintf(dataObjectFileName, sizeof(dataObjectFileName), 
-	     "WorkerData_%d.data", port);
-
-    dataObjectFD = open(dataObjectFileName, 
-		     O_RDWR | O_CREAT | O_SYNC, S_IRUSR | S_IWUSR );
-    if (dataObjectFD < 0 ) {
-      char msg[256];
-      snprintf(msg, sizeof(msg), "Opening %s failed", dataObjectFileName);
-      perror(msg);
-      err++;
-    } else {
-      // Open/create the ShiViz log file - Note that we are assuming that if the 
-      // log file exists that this is the restart of a worker and hence as part of the 
-      // recover process will get its old vector clock value and pick up from there.
-      // Consquently we will always be appending to a log file. 
-      snprintf(dataObjectFileName, sizeof(dataObjectFileName), 
-	       "ShiViz_%d.dat", port);
-      
-      vectorLogFD = open(dataObjectFileName, 
-			 O_WRONLY | O_CREAT | O_APPEND | O_SYNC, S_IRUSR | S_IWUSR );
-      if (vectorLogFD < 0 ) {
-	char msg[256];
-	snprintf(msg, sizeof(msg), "Opening %s failed", dataObjectFileName);
-	perror(msg);
-	err++;
-      }
-    }
-
-  if (err) {
-    printf("%d transaction manager initialization error%sencountered, program exiting.\n",
-	   err, err>1? "s were ": " was ");
-    return -1;
-  }
-  
-  
-  printf("Starting up transaction worker on %d\n", port);
-  printf("Port number:                      %d\n", port);
-  printf("Log file name:                    %s\n", logFileName);
-
-
-  if(fstat(dataObjectFD, &fstatus) < 0 ) {
+if(fstat(dataObjectFD, &fstatus) < 0 ) {
     perror("Filestat failed");
     return -2;
   }
@@ -133,7 +130,7 @@ return -1;
   objData->B = 0x98765432;
   gettimeofday(&objData->lastUpdateTime, NULL);
   snprintf(objData->IDstring, sizeof(objData->IDstring), 
-	   "This is a random ID string %ld");
+	   "This is a random ID string");
 
   // Fill the vector Clock with  0s and this nodes clock time
 

@@ -6,8 +6,8 @@ CC=gcc
 CPPFLAGS=
 CFLAGS=-g -Werror-implicit-function-declaration -pedantic -std=c99
 
-tworker: tworker.h msg.h tworker.c
-	$(CC) $(CFLAGS) -o tworker tworker.c
+tworker: tworker.h msg.c tworker.c server.c common.c
+	$(CC) $(CFLAGS) -o tworker msg.c tworker.c server.c common.c
 
 tmanager: tmanager.c msg.c common.c server.c
 	$(CC) $(CFLAGS) -o tmanager tmanager.c common.c server.c msg.c

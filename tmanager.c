@@ -53,6 +53,7 @@ int main(int argc, char ** argv)
         /* Handle message */
         switch(msg.type) {
             case BEGINTX:
+                printf("Begining a transaction");
                 break;
         }
     }

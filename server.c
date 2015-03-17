@@ -82,11 +82,19 @@ void server_shutdown(server_t** server_ptr){
 int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t* msg){
 
     /* */
-    struct in_addr dest_address;
-    resolve_host(dest_host, &dest_address);
+    struct sockaddr_in dest_address;
+    resolve_host(dest_host, &dest_address.sin_addr);
+
+    dest_address.sin_family = AF_INET;
+    dest_address.sin_port = htons(dest_port);
+    
+    printf("Sending %s to %s:%d\n", message_string(msg), dest_host, dest_port);
+
 
     /* set message information */
     /* TODO */
+    /* Convert to network byte order */
+    message_to_nbo(msg);
 
     /* sendto */ 
     int numbytes;
@@ -107,7 +115,7 @@ int  server_recv_timeout(server_t* server, message_t* message, uint32_t* recv_po
     assert(message != NULL);
     assert(recv_port != NULL);
     *recv_port = 0;
-    
+   
     ssize_t len;
     struct sockaddr_in sender_addr;
     socklen_t addr_size = sizeof(struct sockaddr_in);
@@ -134,12 +142,14 @@ int  server_recv_timeout(server_t* server, message_t* message, uint32_t* recv_po
     }
 
     len = recvfrom(server->socket_id, (void*)message, sizeof(message_t), flags, (struct sockaddr*)&sender_addr, &addr_size);
-    
+
     /* Pass sender port */
     *recv_port = ntohs(sender_addr.sin_port);
 
     /* Convert from network byte order */
     message_from_nbo(message);
 
+    printf("Received %s from %d\n", message_string(message), *recv_port);
+    
     return (int)len;
 }
