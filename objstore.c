@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <time.h>
 
 #include "objstore.h"
 
@@ -36,6 +37,7 @@ void objstore_init(objstore_t** store_ptr, const char* dataFileName)
         space used in the file to hold the data.  */
         objstore_t space;
         memset(&space, 0, sizeof(objstore_t));
+        gettimeofday(&space.lastUpdateTime, NULL);
 
         int rv = write(fd, &space, sizeof(objstore_t));
         if (rv != sizeof(objstore_t)) {
@@ -49,9 +51,14 @@ void objstore_init(objstore_t** store_ptr, const char* dataFileName)
     store = (objstore_t*)mmap(NULL, 512, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
 
     if (store == NULL) {
-        printf("Object data could not be mapped in");
+        printf("Object data could not be mapped to memory\n");
         exit(-1);
     }
+
+    char time_str[32];
+    struct tm* ltime = localtime(&store->lastUpdateTime.tv_sec);
+    strftime(time_str, 32, "%Y-%m-%d %H:%M:%S", ltime);
+    printf("Object store initialized. Last written at %s\n", time_str);
 
     *store_ptr = store;
 }
@@ -66,7 +73,7 @@ void objstore_sync(objstore_t* store)
     /* Flush to disc */
     int r = msync(store, sizeof(objstore_t), MS_SYNC);
     if (r != 0) {
-        printf("Unable to sync\n");
+        printf("Unable to sync data file\n");
         exit(-1);
     }
 }

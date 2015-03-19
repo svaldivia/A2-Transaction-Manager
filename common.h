@@ -21,5 +21,6 @@ typedef struct vclock_t vclock_t;
 
 void vclock_init(vclock_t* vclock);
 void vclock_update(uint32_t my_id, vclock_t* mine, vclock_t* other);
+void vclock_dump(vclock_t* vclock);
 
 #endif

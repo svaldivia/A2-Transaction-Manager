@@ -1,4 +1,4 @@
-all: tmanager tworker cmd dumpObject
+all: tmanager tworker cmd dumpObject txlog_dump
 
 
 CLIBS=-pthread
@@ -14,6 +14,10 @@ tmanager: tmanager.c msg.c common.c server.c
 
 dumpObject: dumpObject.c tworker.h
 	$(CC) $(CFLAGS) -o dumpObject dumpObject.c
+
+txlog_dump: txlog_dump.c txlog.c common.c
+	$(CC) $(CFLAGS) -o txlog_dump txlog_dump.c txlog.c common.c
+
 
 cmd: command.c common.c msg.c
 	$(CC) $(CFLAGS) -o cmd command.c common.c msg.c

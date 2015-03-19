@@ -14,7 +14,7 @@
 #include "tmanager.h"
 #include "server.h"
 
-vclock tm_clock;
+vclock_t tm_clock;
 
 int main(int argc, char ** argv) 
 {

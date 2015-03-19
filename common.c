@@ -89,3 +89,9 @@ void vclock_update(uint32_t my_id, vclock_t* mine, vclock_t* other)
         printf("Cannot update vector clock for node %d: Maximum nodes reached\n", other[i].nodeId);
     }
 } 
+
+void vclock_dump(vclock_t* vclock) {
+    int c;
+    for (c = 0; c < MAX_NODES; c++)
+        printf("  node[%d] = %d\n", vclock[c].nodeId, vclock[c].time);
+}
