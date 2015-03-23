@@ -27,8 +27,6 @@ int main(int argc, char ** argv)
     int     vectorLogFD;
     char    txlogName[128];
 
-    vclock_t vclock[MAX_NODES];
-    txlog_t* txlog;
     worker_state_t wstate;
 
     /* Check cmd line input*/
@@ -45,19 +43,21 @@ int main(int argc, char ** argv)
         printf("Port conversion error\n");
         err++;
     }  
-  
+
     printf("Starting up transaction worker on %d\n", port);
     printf("Port number:                      %d\n", port);
     printf("Log file name:                    %s\n", logFileName);
 
+    wstate.node_id = port;
+
     /* Check or Open log*/
     sprintf(txlogName, "txlog_%d.data", port);
-    txlog_open(&txlog, txlogName); 
+    txlog_open(&wstate.txlog, txlogName); 
 
     /* Get the vector clock + set local clock */
-    txlog_read_clock(txlog, vclock);
+    txlog_read_clock(txlog, wstate.vclock);
 
-    shitviz_append(port, "Started worker", vclock);
+    shitviz_append(port, "Started worker", wstate.vclock);
 
     /* Set up server :: Command */
     server_t* server_cmd = NULL;

@@ -31,11 +31,47 @@ void* tx_worker_thread(void* params)
     struct sockaddr_in recv_addr;
     message_t msg;
 
-    while(1) {
-        server_recv(wstate->server,&msg,&recv_addr);
+    while(1) 
+    {
+        server_recv(wstate->server, &msg, &recv_addr);
+
+        /* update vector clock */
+        vclock_update(wstate->node_id, wstate->vclock, msg.vclock);
         
-        switch(msg.type){
-        
+        switch(msg.type)
+        {
+            case PREPARE_TO_COMMIT: {
+                /* vote yes? */
+                if (wstate->do_commit) {
+                    shitviz_append(wstate->node_id, "Voting COMMIT", wstate->vclock);
+                    break;
+                }
+
+                /* vote no? */
+                if (wstate->do_abort) {
+                    shitviz_append(wstate->node_id, "Voting ABORT", wstate->vclock);
+                    break;
+                }
+
+                break;
+            }
+
+            case ABORT:
+                break;
+
+            case COMMIT:
+                break;
+
+            case TX_ERROR: {
+                char err_buff[512];
+                sprintf(err_buff, "Transaction error: %s", msg.strdata);
+                shitviz_append(wstate->node_id, err_buff, wstate->vclock);
+
+                /* if value=1 then exit the transaction thread */
+                if (msg.value) 
+                    return;
+                break;
+            }
         }
     }
     
