@@ -4,7 +4,9 @@
 #include <sys/time.h>
 #include <stdint.h>
 #include <stdbool.h>
+
 #include "common.h"
+#include "server.h"
 
 typedef     /* got the port number create a logfile name */
 struct {
@@ -18,8 +20,9 @@ struct {
 
 struct worker_state_t 
 {
-    uint32_t tm_port;
-    char     tm_host[64];
+    server_t* server;
+    uint32_t  tm_port;
+    char      tm_host[64];
 
     /* wat do we need */
     bool do_commit;
@@ -28,6 +31,8 @@ struct worker_state_t
 
 typedef struct worker_state_t worker_state_t;
 
-void worker_thread(void* params);
+void tx_manager_spawn(worker_state_t*, const char*, uint32_t);
+void* tx_worker_thread(void* params);
+
 
 #endif /* TWORKER_H */

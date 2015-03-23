@@ -10,21 +10,22 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "common.h"
 #include "msg.h"
 #include "tworker.h"
 #include "server.h"
 
+
 int main(int argc, char ** argv) 
 {
     int            port;
     char           logFileName[128];
-    char           dataObjectFileName[128];
     int            logfileFD;
     int            vectorLogFD;
-    int retVal;
-    struct stat    fstatus;
+
+    worker_state_t wstate;
 
     /* Check cmd line input*/
     if (argc != 2) {
@@ -37,13 +38,14 @@ int main(int argc, char ** argv)
 
     port = strtoul(argv[1], &end, 10);
     if (argv[1] == end) {
-    printf("Port conversion error\n");
-    err++;
+        printf("Port conversion error\n");
+        err++;
     }  
   
     printf("Starting up transaction worker on %d\n", port);
     printf("Port number:                      %d\n", port);
     printf("Log file name:                    %s\n", logFileName);
+
     
     /* Check or Open log*/
 
@@ -51,16 +53,8 @@ int main(int argc, char ** argv)
 
     /* Set up server :: Command*/
     server_t* server_cmd = NULL;
-    server_alloc(&server_cmd,port, 10);
-
+    server_alloc(&server_cmd, port, 10);
     server_listen(server_cmd);
-    
-    /* Set up server :: TMananger*/
-    server_t* server_tman = NULL;
-    server_alloc(&server_tman,port, 10);
-
-    server_listen(server_tman);
-
 
     uint32_t recv_port;
     message_t msg;
@@ -72,7 +66,10 @@ int main(int argc, char ** argv)
         switch (msg.type){
             case BEGINTX:
                 /* Send begin transaction to the transaction manager */
-                server_send(server_cmd,msg.strdata,msg.port,&msg);
+                tx_manager_spawn(&wstate, (const char*)&msg.strdata, msg.port);
+
+                assert(wstate.server);
+                server_send(wstate.server, wstate.tm_host, wstate.tm_port, &msg);
                 
                 /* Create log entry */
                
