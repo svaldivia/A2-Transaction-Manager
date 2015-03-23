@@ -85,6 +85,7 @@ int main(int argc, char ** argv)
                     printf("ERROR: Transaction already active\n");
                     break;
                 }
+                wstate.transaction = msg.tid;
                 tx_manager_spawn(&wstate, (const char*)&msg.strdata, msg.port);
 
                 assert(wstate.server);

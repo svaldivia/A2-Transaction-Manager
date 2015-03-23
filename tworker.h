@@ -23,6 +23,7 @@ struct worker_state_t
     char        tm_host[64];
 
     /* wat do we need */
+    int  transaction;
     bool is_active;
     bool do_commit;
     bool do_abort;

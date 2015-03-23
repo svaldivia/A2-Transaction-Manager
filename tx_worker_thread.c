@@ -51,6 +51,10 @@ void* tx_worker_thread(void* params)
                     vote.type = PREPARED;
                     shitviz_append(wstate->node_id, "Voting COMMIT", wstate->vclock);
                     server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &vote);
+
+                    /* log prepared */
+
+
                     break;
                 }
 
