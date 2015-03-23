@@ -31,7 +31,7 @@ int main(int argc, char ** argv) {
   char           dataObjectFileName[128];
   char           timeBuf[128];
   int            dataObjectFD;
-  ObjectData     *objData;
+  objstore_t     *objData;
   int retVal;
   struct stat    fstatus;
 
@@ -64,7 +64,7 @@ int main(int argc, char ** argv) {
     return -3;
   }
 
-  if (fstatus.st_size != sizeof(ObjectData)) {
+  if (fstatus.st_size != sizeof(objstore_t)) {
       /* File hasn't been mapped in before 
          so we need to make sure there is enough
          space used in the file to hold 
@@ -87,7 +87,7 @@ int main(int argc, char ** argv) {
   }
   
   
-  printf("String ID: %s\n", objData->IDstring);
+  printf("String ID: %s\n", objData->id_string);
   time_t p;
   p = objData->lastUpdateTime.tv_sec;
   char *timebuff = ctime(&p);
@@ -95,15 +95,15 @@ int main(int argc, char ** argv) {
 
   printf(" %s  usec %d\n", timebuff,
   	 objData->lastUpdateTime.tv_usec);
-  printf(" Object A: %15d 0x%08x\n", objData->A, objData->A);
-  printf(" Object B: %15d 0x%08x\n", objData->B, objData->B);
+  printf(" Object A: %15d 0x%08x\n", objData->a, objData->a);
+  printf(" Object B: %15d 0x%08x\n", objData->b, objData->b);
 
   // Print the vectorClock field
 
   int i;
   
   for (i = 0; i < MAX_NODES; i++) {
-    printf("    node[%d] = %u\n",  objData->vectorClock[i].nodeId,
-	   objData->vectorClock[i].time);
+    printf("    node[%d] = %u\n",  objData->vclock[i].nodeId,
+	   objData->vclock[i].time);
   }
 }

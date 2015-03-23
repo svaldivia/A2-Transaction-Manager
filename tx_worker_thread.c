@@ -28,6 +28,7 @@ void* tx_worker_thread(void* params)
 
     printf("Started TM thread: (%s:%d)\n", wstate->tm_host, wstate->tm_port);
 
+    int running = true;
     struct sockaddr_in recv_addr;
     message_t msg;
 
@@ -41,26 +42,49 @@ void* tx_worker_thread(void* params)
         switch(msg.type)
         {
             case PREPARE_TO_COMMIT: {
-                /* vote yes? */
+                message_t vote;
+                vclock_increment(wstate->node_id, wstate->vclock);
+                message_init(&vote, wstate->vclock);
+
+                /* vote commit? */
                 if (wstate->do_commit) {
+                    vote.type = PREPARED;
                     shitviz_append(wstate->node_id, "Voting COMMIT", wstate->vclock);
+                    server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &vote);
                     break;
                 }
 
-                /* vote no? */
+                /* vote abort? */
                 if (wstate->do_abort) {
+                    vote.type = VOTE_ABORT;
                     shitviz_append(wstate->node_id, "Voting ABORT", wstate->vclock);
+                    server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &vote);
                     break;
                 }
 
+                printf("Dunno what to do for PREPARE TO COMMIT!\n");
                 break;
             }
 
-            case ABORT:
-                break;
+            case ABORT: {
+                /* log abort */
+                shitviz_append(wstate->node_id, "Abort", wstate->vclock);
 
-            case COMMIT:
+                /* roll back */
+
+                /* exit transaction thread */
+                running = false;
                 break;
+            }
+
+            case COMMIT: {
+                /* log commit etc */
+                shitviz_append(wstate->node_id, "Commit", wstate->vclock);
+
+                /* exit transaction thread */
+                running = false;
+                break;
+            }
 
             case TX_ERROR: {
                 char err_buff[512];
@@ -69,7 +93,7 @@ void* tx_worker_thread(void* params)
 
                 /* if value=1 then exit the transaction thread */
                 if (msg.value) 
-                    return;
+                    running = false;
                 break;
             }
         }

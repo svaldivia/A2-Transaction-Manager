@@ -26,6 +26,7 @@ int main(int argc, char ** argv)
     int     logfileFD;
     int     vectorLogFD;
     char    txlogName[128];
+    char    storeName[128];
 
     worker_state_t wstate;
 
@@ -50,12 +51,17 @@ int main(int argc, char ** argv)
 
     wstate.node_id = port;
 
+    /* Open object store */
+    sprintf(storeName, "store_%d.data", wstate.node_id);
+    objstore_init(&wstate.store, storeName);
+    
+
     /* Check or Open log*/
-    sprintf(txlogName, "txlog_%d.data", port);
+    sprintf(txlogName, "txlog_%d.data", wstate.node_id);
     txlog_open(&wstate.txlog, txlogName); 
 
     /* Get the vector clock + set local clock */
-    txlog_read_clock(txlog, wstate.vclock);
+    txlog_read_clock(wstate.txlog, wstate.vclock);
 
     shitviz_append(port, "Started worker", wstate.vclock);
 

@@ -90,6 +90,19 @@ void vclock_update(uint32_t my_id, vclock_t* mine, vclock_t* other)
     }
 } 
 
+void vclock_increment(uint32_t my_id, vclock_t* vclock) {
+    int c;
+    for (c = 0; c < MAX_NODES; c++) {
+        vclock_t* vc = &vclock[c];
+        if (vc->nodeId == my_id) {
+            vc->time++;
+            return;
+        }
+    }
+    printf("Could not increment vector clock, node ID %d doesn't exist\n", my_id);
+    exit(1);
+}
+
 void vclock_dump(vclock_t* vclock) {
     int c;
     for (c = 0; c < MAX_NODES; c++)
