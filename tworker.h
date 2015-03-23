@@ -7,6 +7,8 @@
 
 #include "common.h"
 #include "server.h"
+#include "txlog.h"
+#include "shitviz.h"
 
 typedef     /* got the port number create a logfile name */
 struct {

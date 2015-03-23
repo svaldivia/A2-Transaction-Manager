@@ -83,7 +83,7 @@ int main(int argc, char ** argv)
 
                 assert(wstate.server);
                 /* Send begin transaction to the transaction manager */
-                server_send(wstate.server, wstate.tm_host, wstate.tm_port, &msg);
+                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &msg);
                 
                 /* Create log entry */
                
@@ -99,7 +99,7 @@ int main(int argc, char ** argv)
 
                 assert(wstate.server);
                 /* Join this worker worker to the given transaction */
-                server_send(wstate.server, wstate.tm_host, wstate.tm_port, &msg);
+                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &msg);
                 break;
 
             case NEW_A:
