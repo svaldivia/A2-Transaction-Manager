@@ -37,6 +37,6 @@ struct txmanager_t
 typedef struct txmanager_t txmanager_t;
 
 
-transaction_t* addTransaction(uint32_t tid);
+transaction_t* addTransaction(uint32_t tid,struct sockaddr_in* dest_addr);
 
 #endif

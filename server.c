@@ -95,15 +95,11 @@ int server_send_to(server_t* server, char* dest_host, uint32_t dest_port, messag
     dest_address.sin_port = htons(dest_port);
 
     printf("Sending %s to %s:%d\n", message_string(msg), dest_host, dest_port);
-    server_send(server, dest_address, msg);
+    return server_send(server, &dest_address, msg);
 }
-
+/* send to address: with sockaddr_in */
 int server_send(server_t* server, struct sockaddr_in* dest_address, message_t* msg)
 {
-
-    /* set message information */
-    /* TODO */
-   
     /* Convert to network byte order */
     message_to_nbo(msg);
 
@@ -113,7 +109,7 @@ int server_send(server_t* server, struct sockaddr_in* dest_address, message_t* m
         perror("server: send");         
         exit(1);                  
     }
-	return 0;
+	return numbytes;
 }
 
 /* recieve from node */

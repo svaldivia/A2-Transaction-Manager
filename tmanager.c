@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common.h"
 #include "msg.h"
@@ -59,7 +60,7 @@ int main(int argc, char ** argv)
         switch(msg.type) {
             case BEGINTX:
                 printf("Begining a transaction");
-                addTransaction(msg.tid);
+                addTransaction(msg.tid,&recv_addr);
                 break;
             case COMMIT:
                 printf("Commit request");
@@ -77,13 +78,19 @@ int main(int argc, char ** argv)
 }
 
 /* */
-transaction_t* addTransaction(uint32_t tid){
+transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
     int i;
     for (i = 0; i < MAX_TRANSACTIONS; i++){
         /* tid exists */
         if (txmanager.transactions[i].tid == tid){
+            /* Create error message*/
+            message_t msg;
+            msg.type = COMMIT; //TODO:
+            msg.value = 1;
+            strcpy(msg.strdata,"TID already exists");
+
             /* send error */
-           // server_send(txmanager->server, wstate.tm_host, wstate.tm_port, &msg);
+            server_send(txmanager.server,dest_addr, &msg);
         }
     }
 

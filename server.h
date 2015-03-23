@@ -29,7 +29,9 @@ int server_listen(server_t* server);
 void server_shutdown(server_t**);
 
 /* send to node */
-int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t* msg);
+int server_send_to(server_t* server, char* dest_host, uint32_t dest_port, message_t* msg);
+/* send to node: with sockaddr_in*/
+int server_send(server_t* server, struct sockaddr_in* dest_addr, message_t* msg);
 
 /* recieve from node */
 int  server_recv(server_t* server, message_t* message, struct sockaddr_in* recv_addr);
