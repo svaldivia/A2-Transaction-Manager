@@ -64,6 +64,8 @@ void txlog_open(txlog_t** log_ptr, const char* logFileName)
         printf("Log header could not be mapped to memory\n");
         exit(-1);
     }
+
+    log->header = header;
 }
 
 /** close transaction log */
@@ -114,7 +116,19 @@ void txlog_read_clock(txlog_t* log, vclock_t* out_clock) {
 /** appends a log entry to the log file */
 void txlog_append(txlog_t* log, txlog_entry_t* entry) 
 {
+    off_t offset = sizeof(txlog_head_t) + log->header->tx_count * sizeof(txlog_entry_t);
+    lseek(log->file, offset, SEEK_SET);
+    write(log->file, entry, sizeof(txlog_entry_t));
+
     /* increment number of transactions */
     log->header->tx_count++;
     txlog_sync(log);
+}
+
+/** reads a log entry with the given index */
+void txlog_read_entry(txlog_t* log, uint32_t idx, txlog_entry_t* out_entry) 
+{
+    off_t offset = sizeof(txlog_head_t) + idx * sizeof(txlog_entry_t);
+    lseek(log->file, offset, SEEK_SET);
+    read(log->file, out_entry, sizeof(txlog_entry_t));
 }

@@ -16,40 +16,30 @@
 #include "tworker.h"
 #include "server.h"
 
-
-void usage(char * cmd) {
-  printf("usage: %s  portNum\n",
-	 cmd);
-}
-
 int main(int argc, char ** argv) 
 {
-// This is some sample code feel free to delete it
+    int            port;
+    char           logFileName[128];
+    char           dataObjectFileName[128];
+    int            logfileFD;
+    int            vectorLogFD;
+    int retVal;
+    struct stat    fstatus;
 
-int            port;
-char           logFileName[128];
-char           dataObjectFileName[128];
-int            logfileFD;
-int            dataObjectFD;
-int            vectorLogFD;
-ObjectData     *objData;
-int retVal;
-struct stat    fstatus;
+    /* Check cmd line input*/
+    if (argc != 2) {
+        printf("usage: %s  portNum\n", argv[0]);
+        return -1;
+    }
 
-/* Check cmd line input*/
-if (argc != 2) {
-usage(argv[0]);
-return -1;
-}
+    char * end;
+    int err = 0;
 
-  char * end;
-  int err = 0;
-
-  port = strtoul(argv[1], &end, 10);
-  if (argv[1] == end) {
+    port = strtoul(argv[1], &end, 10);
+    if (argv[1] == end) {
     printf("Port conversion error\n");
     err++;
-  }  
+    }  
   
     printf("Starting up transaction worker on %d\n", port);
     printf("Port number:                      %d\n", port);
@@ -150,61 +140,5 @@ return -1;
         }
     }
 
-if(fstat(dataObjectFD, &fstatus) < 0 ) {
-    perror("Filestat failed");
-    return -2;
-  }
-
-  if (fstatus.st_size < sizeof(ObjectData)) {
-      /* File hasn's been mapped in before 
-         so we need to make sure there is enough
-         space used in the file to hold 
-         the data.
-      */
-      ObjectData  space;
-      retVal = write(dataObjectFD, &space, sizeof(ObjectData));
-      if (retVal != sizeof(ObjectData)) {
-	printf("Some sort of writing error\n");
-	return -3;
-      }
-    }
-
-    objData = mmap(NULL, 512, PROT_WRITE|PROT_READ, MAP_SHARED, dataObjectFD, 0);
-  
-  if (objData == 0) {
-    perror("Object data could not be mapped in");
-    return -1;
-  }
-  
-
-
-  objData->A = 0x01020304;
-  objData->B = 0x98765432;
-  gettimeofday(&objData->lastUpdateTime, NULL);
-  snprintf(objData->IDstring, sizeof(objData->IDstring), 
-	   "This is a random ID string");
-
-  // Fill the vector Clock with  0s and this nodes clock time
-
-  // Increment my clock and log an event saying I started
-  objData->vectorClock[0].nodeId = port;
-  objData->vectorClock[0].time = 1;
-
-  int i;
-  
-  for (i = 1; i < MAX_NODES; i++) {
-    objData->vectorClock[i].nodeId = 0;
-    objData->vectorClock[i].time = 0; 
-  }
-  
-  
-
-  msync(objData, sizeof(ObjectData), MS_SYNC);
-  
-  retVal = munmap(objData, sizeof(ObjectData));
-  if (retVal < 0) {
-    perror("Unmap failed");
-  }
-  return 0;
-
+    return 0;
 }

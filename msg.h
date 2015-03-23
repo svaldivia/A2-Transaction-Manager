@@ -18,7 +18,7 @@ enum cmdType {
 	COMMIT_CRASH,
 	ABORT, 
     ABORT_CRASH, 
-	VOTE_ABORT
+	VOTE_ABORT,
 };
 
 typedef enum cmdType cmdType;

@@ -1,12 +1,11 @@
 all: tmanager tworker cmd dumpObject txlog_dump
 
-
 CLIBS=-pthread
 CC=gcc
 CPPFLAGS=
 CFLAGS=-g -Werror-implicit-function-declaration -pedantic -std=c99
 
-tworker: tworker.h msg.c tworker.c server.c common.c
+tworker: tworker.h msg.c tworker.c server.c common.c tx_worker_thread.c
 	$(CC) $(CFLAGS) -o tworker msg.c tworker.c server.c common.c
 
 tmanager: tmanager.c msg.c common.c server.c
@@ -17,7 +16,6 @@ dumpObject: dumpObject.c tworker.h
 
 txlog_dump: txlog_dump.c txlog.c common.c
 	$(CC) $(CFLAGS) -o txlog_dump txlog_dump.c txlog.c common.c
-
 
 cmd: command.c common.c msg.c
 	$(CC) $(CFLAGS) -o cmd command.c common.c msg.c
