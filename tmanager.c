@@ -42,6 +42,7 @@ int main(int argc, char ** argv)
     
     /* */
     txmanager.server = NULL;
+    txmanager.port = port;
 
     /* Set up server */
     server_alloc(&txmanager.server, port, 10);
@@ -85,19 +86,37 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
         if (txmanager.transactions[i].tid == tid){
             /* Create error message*/
             message_t msg;
-            msg.type = COMMIT; //TODO:
+            message_init(&msg,&tm_clock);
+            msg.type = TX_ERROR;
             msg.value = 1;
             strcpy(msg.strdata,"TID already exists");
 
             /* send error */
+            vclock_increment(txmanager.port,&tm_clock);
             server_send(txmanager.server,dest_addr, &msg);
+        } else if(txmanager.transactions[i].state == COMMIT_STATE || txmanager.transactions[i].state == ABORT_STATE || txmanager.transactions[i].tid == 0) {
+            /* Insert transaction */
+            txmanager.transactions[i].state = BEGIN_STATE;
+            txmanager.transactions[i].tid = tid;
+            txmanager.transactions[i].nodeCount = 1;
+            txmanager.transactions[i].nodes[0] = ntohs(dest_addr->sin_port);
+            printf("Transaction:\n tid: %d state: %d node:%d \n was added successfully",txmanager.transactions[i].tid, txmanager.transactions[i].state,txmanager.transactions[i].nodes[0]);
+            return &txmanager.transactions[i];
         }
     }
+    /* Transaction log full */
+    printf("No more space in transaction manager");
+    
+    /* Create error message*/
+    message_t msg;
+    message_init(&msg,&tm_clock);
+    msg.type = TX_ERROR;
+    msg.value = 1;
+    strcpy(msg.strdata,"Transaction queue full");
+    
+    vclock_increment(txmanager.port,&tm_clock);
+    server_send(txmanager.server,dest_addr, &msg);
 
-
-/* tid exist */
-/*  */
-/* */
     return NULL;
 }
 
