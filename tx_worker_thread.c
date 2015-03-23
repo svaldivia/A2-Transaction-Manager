@@ -9,6 +9,7 @@
 
 void tx_manager_spawn(worker_state_t* state, const char* tm_host, uint32_t tm_port) 
 {
+    state->is_active = true;
     state->server = NULL;
     state->tm_port = tm_port;
     strcpy(state->tm_host, tm_host);
@@ -39,6 +40,8 @@ void* tx_worker_thread(void* params)
     }
     
     /* clean up */
+    printf("Exiting transaction thread\n");
     server_shutdown(&wstate->server);
+    wstate->is_active = false;
     return NULL;
 }

@@ -16,15 +16,19 @@
 #include "msg.h"
 #include "tworker.h"
 #include "server.h"
-
+#include "txlog.h"
+#include "shitviz.h"
 
 int main(int argc, char ** argv) 
 {
-    int            port;
-    char           logFileName[128];
-    int            logfileFD;
-    int            vectorLogFD;
+    int     port;
+    char    logFileName[128];
+    int     logfileFD;
+    int     vectorLogFD;
+    char    txlogName[128];
 
+    vclock_t vclock[MAX_NODES];
+    txlog_t* txlog;
     worker_state_t wstate;
 
     /* Check cmd line input*/
@@ -46,12 +50,16 @@ int main(int argc, char ** argv)
     printf("Port number:                      %d\n", port);
     printf("Log file name:                    %s\n", logFileName);
 
-    
     /* Check or Open log*/
+    sprintf(txlogName, "txlog_%d.data", port);
+    txlog_open(&txlog, txlogName); 
 
     /* Get the vector clock + set local clock */
+    txlog_read_clock(txlog, vclock);
 
-    /* Set up server :: Command*/
+    shitviz_append(port, "Started worker", vclock);
+
+    /* Set up server :: Command */
     server_t* server_cmd = NULL;
     server_alloc(&server_cmd, port, 10);
     server_listen(server_cmd);
@@ -59,38 +67,52 @@ int main(int argc, char ** argv)
     struct sockaddr_in recv_addr;
     message_t msg;
 
-    while(1){
+    while(1)
+    {
         server_recv(server_cmd,&msg,&recv_addr);
 
         /* Handle Message */
-        switch (msg.type){
+        switch (msg.type)
+        {
             case BEGINTX:
-                /* Send begin transaction to the transaction manager */
+                if (wstate.is_active) {
+                    printf("ERROR: Transaction already active\n");
+                    break;
+                }
                 tx_manager_spawn(&wstate, (const char*)&msg.strdata, msg.port);
 
                 assert(wstate.server);
+                /* Send begin transaction to the transaction manager */
                 server_send(wstate.server, wstate.tm_host, wstate.tm_port, &msg);
                 
                 /* Create log entry */
                
                 //TODO: If the transaction ID is already used log it to shiviz 
                 break;
-            case JOINTX:
-                /* Join this worker worker to the given transaction */
 
-                //TODO: Handle success or failure from transaction manager
+            case JOINTX:
+                if (wstate.is_active) {
+                    printf("ERROR: Transaction already active\n");
+                    break;
+                }
+                tx_manager_spawn(&wstate, (const char*)&msg.strdata, msg.port);
+
+                assert(wstate.server);
+                /* Join this worker worker to the given transaction */
+                server_send(wstate.server, wstate.tm_host, wstate.tm_port, &msg);
                 break;
+
             case NEW_A:
                 /* Change the value of the A object to a new value*/
 
                 //TODO: Check if transaction is currently happening
-                    // If not, change it and save it
+                // If not, change it and save it
                
                 break;
             case NEW_B:
                 /* Change the value of the B object to a new value*/
-               //TODO: Check if transaction is currently happening
-                        // If not, change it and save it
+                //TODO: Check if transaction is currently happening
+                // If not, change it and save it
                 break;
             case NEW_IDSTR:
                 /* change the value of the ID string*/
@@ -105,6 +127,8 @@ int main(int argc, char ** argv)
                 exit(1); 
                 break;
             case COMMIT:
+                wstate.do_abort = false;
+                wstate.do_commit = true;
                 /* ------Phase 1----*/
                 /* Send commit request to tmanager */
 
@@ -123,6 +147,8 @@ int main(int argc, char ** argv)
                
                 break;
             case ABORT:
+                wstate.do_abort = true;
+                wstate.do_commit = false;
                 /* Create log entry */
                
                 break;

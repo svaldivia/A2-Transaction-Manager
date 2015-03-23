@@ -85,7 +85,7 @@ void server_shutdown(server_t** server_ptr){
 }
 
 /* send to address */
-int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t* msg){
+int server_send_to(server_t* server, char* dest_host, uint32_t dest_port, message_t* msg){
 
     /* */
     struct sockaddr_in dest_address;
@@ -93,9 +93,13 @@ int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t
 
     dest_address.sin_family = AF_INET;
     dest_address.sin_port = htons(dest_port);
-    
-    printf("Sending %s to %s:%d\n", message_string(msg), dest_host, dest_port);
 
+    printf("Sending %s to %s:%d\n", message_string(msg), dest_host, dest_port);
+    server_send(server, dest_address, msg);
+}
+
+int server_send(server_t* server, struct sockaddr_in* dest_address, message_t* msg)
+{
 
     /* set message information */
     /* TODO */
@@ -105,7 +109,7 @@ int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t
 
     /* sendto */ 
     int numbytes;
-    if ((numbytes = sendto(server->socket_id,(void*)msg, sizeof(message_t), 0,(struct sockaddr *) &dest_address, sizeof(dest_address)) == -1)) {
+    if ((numbytes = sendto(server->socket_id,(void*)msg, sizeof(message_t), 0,(struct sockaddr *) dest_address, sizeof(struct sockaddr_in)) == -1)) {
         perror("server: send");         
         exit(1);                  
     }
