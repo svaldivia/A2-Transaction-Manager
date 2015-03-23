@@ -56,11 +56,11 @@ int main(int argc, char ** argv)
     server_alloc(&server_cmd, port, 10);
     server_listen(server_cmd);
 
-    uint32_t recv_port;
+    struct sockaddr_in recv_addr;
     message_t msg;
 
     while(1){
-        server_recv(server_cmd,&msg,&recv_port);
+        server_recv(server_cmd,&msg,&recv_addr);
 
         /* Handle Message */
         switch (msg.type){

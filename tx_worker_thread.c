@@ -27,12 +27,15 @@ void* tx_worker_thread(void* params)
 
     printf("Started TM thread: (%s:%d)\n", wstate->tm_host, wstate->tm_port);
 
-    uint32_t recv_port;
+    struct sockaddr_in recv_addr;
     message_t msg;
 
     while(1) {
-        server_recv(server_cmd,&msg,&recv_port);
+        server_recv(wstate->server,&msg,&recv_addr);
         
+        switch(msg.type){
+        
+        }
     }
     
     /* clean up */

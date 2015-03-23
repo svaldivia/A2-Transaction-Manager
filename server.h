@@ -32,7 +32,7 @@ void server_shutdown(server_t**);
 int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t* msg);
 
 /* recieve from node */
-int  server_recv(server_t* server, message_t* message, uint32_t* recv_port);
-int  server_recv_timeout(server_t* server, message_t* message, uint32_t* recv_port, int timeout);
+int  server_recv(server_t* server, message_t* message, struct sockaddr_in* recv_addr);
+int  server_recv_timeout(server_t* server, message_t* message, struct sockaddr_in* recv_addr, int timeout);
 
 #endif

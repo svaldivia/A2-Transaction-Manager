@@ -58,7 +58,13 @@ int server_listen(server_t* server){
         perror("bind failed");
         return sockfd;
     }
-    
+   
+    /* Check if system selected port */
+    if(server->port == 0 ){
+        socklen_t len_serverAddr = sizeof(serverAddr);
+        server->port = getsockname(sockfd,(struct sockaddr *)&serverAddr, &len_serverAddr); 
+    }
+
     /* Add socket file descriptor to server struct */
     server->socket_id = sockfd;
     return sockfd;
@@ -107,18 +113,20 @@ int server_send(server_t* server, char* dest_host, uint32_t dest_port, message_t
 }
 
 /* recieve from node */
-int  server_recv(server_t* server, message_t* message, uint32_t* recv_port){
-    return server_recv_timeout(server,message, recv_port, server->timeout);
+int  server_recv(server_t* server, message_t* message, struct sockaddr_in* recv_addr){
+    return server_recv_timeout(server,message, recv_addr, server->timeout);
 }
-int  server_recv_timeout(server_t* server, message_t* message, uint32_t* recv_port, int timeout)
+
+int  server_recv_timeout(server_t* server, message_t* message, struct sockaddr_in* recv_addr, int timeout)
 {
     assert(server != NULL);
     assert(message != NULL);
-    assert(recv_port != NULL);
-    *recv_port = 0;
+    assert(recv_addr);
+    //assert(recv_port != NULL);
+    //*recv_port = 0;
    
     ssize_t len;
-    struct sockaddr_in sender_addr;
+    //struct sockaddr_in sender_addr;
     socklen_t addr_size = sizeof(struct sockaddr_in);
     int flags = 0;
 
@@ -142,15 +150,18 @@ int  server_recv_timeout(server_t* server, message_t* message, uint32_t* recv_po
         exit(-1);
     }
 
-    len = recvfrom(server->socket_id, (void*)message, sizeof(message_t), flags, (struct sockaddr*)&sender_addr, &addr_size);
+    len = recvfrom(server->socket_id, (void*)message, sizeof(message_t), flags, (struct sockaddr*)recv_addr, &addr_size);
 
     /* Pass sender port */
-    *recv_port = ntohs(sender_addr.sin_port);
+    //*recv_port = ntohs(sender_addr.sin_port);
+    /* Pass IP Address */
+    //*recv_addr = ntohs(sender_addr.sin_addr.s_addr);
 
     /* Convert from network byte order */
     message_from_nbo(message);
 
-    printf("Received %s from %d\n", message_string(message), *recv_port);
+    //printf("Received %s from %d\n", message_string(message), *recv_port);
+    printf("Received %s %d\n", message_string(message), ntohs(recv_addr->sin_port));
     
     return (int)len;
 }

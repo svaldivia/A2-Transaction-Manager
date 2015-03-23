@@ -15,6 +15,8 @@
 #include "server.h"
 
 vclock_t tm_clock;
+txmanager_t txmanager;
+
 
 int main(int argc, char ** argv) 
 {
@@ -36,16 +38,19 @@ int main(int argc, char ** argv)
 
     /* Init vector clock */
     vclock_init(&tm_clock);
+    
+    /* */
+    txmanager.server = NULL;
 
     /* Set up server */
-    server_t* server = NULL;
-    server_alloc(&server, port, 10);
-    server_listen(server);
+    server_alloc(&txmanager.server, port, 10);
+    server_listen(txmanager.server);
 
-    uint32_t  recv_port;
+    struct sockaddr_in recv_addr;
+    
     message_t msg;
     while(1) {
-        server_recv(server, &msg, &recv_port);
+        server_recv(txmanager.server, &msg, &recv_addr);
 
         /* Update vector clock */
         vclock_update(port, &tm_clock, msg.vclock);
@@ -54,9 +59,42 @@ int main(int argc, char ** argv)
         switch(msg.type) {
             case BEGINTX:
                 printf("Begining a transaction");
+                addTransaction(msg.tid);
+                break;
+            case COMMIT:
+                printf("Commit request");
+                break;
+            case ABORT:
+                printf("Aborting transaction");
+                break;
+            case PREPARED:
+                printf("Node is prepared");
                 break;
         }
     }
 
     return 0;
 }
+
+/* */
+transaction_t* addTransaction(uint32_t tid){
+    int i;
+    for (i = 0; i < MAX_TRANSACTIONS; i++){
+        /* tid exists */
+        if (txmanager.transactions[i].tid == tid){
+            /* send error */
+           // server_send(txmanager->server, wstate.tm_host, wstate.tm_port, &msg);
+        }
+    }
+
+
+/* tid exist */
+/*  */
+/* */
+    return NULL;
+}
+
+
+
+
+

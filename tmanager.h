@@ -8,13 +8,21 @@
 #include "server.h"
 
 #define MAX_TRANSACTIONS (4)
+enum transaction_state {
+    BEGIN_STATE,
+    COMMIT_STATE,
+    PREPARE_STATE,
+    ABORT_STATE
+};
+typedef enum transaction_state transaction_state;
 
 /* Stores information about an ongoing transaction */
 struct transaction_t {
+    transaction_state state;
     uint32_t tid;
     uint32_t nodes[MAX_NODES];
+    uint32_t nodeCount;
 };
-
 typedef struct transaction_t transaction_t;
 
 struct txmanager_t 
@@ -27,5 +35,8 @@ struct txmanager_t
 };
 
 typedef struct txmanager_t txmanager_t;
+
+
+transaction_t* addTransaction(uint32_t tid);
 
 #endif

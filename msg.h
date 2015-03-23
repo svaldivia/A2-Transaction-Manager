@@ -9,7 +9,9 @@
 enum cmdType {
     BEGINTX = 1000,
 	JOINTX,
-	NEW_A,
+    PREPARE_TO_COMMIT,
+    PREPARED,
+    NEW_A,
 	NEW_B,
 	NEW_IDSTR,
 	DELAY_RESPONSE,
