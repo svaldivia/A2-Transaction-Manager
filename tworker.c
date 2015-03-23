@@ -54,47 +54,99 @@ return -1;
     printf("Starting up transaction worker on %d\n", port);
     printf("Port number:                      %d\n", port);
     printf("Log file name:                    %s\n", logFileName);
+    
+    /* Check or Open log*/
 
-    /* Set up server */
-    server_t* server = NULL;
-    server_alloc(&server,port, 10);
+    /* Get the vector clock + set local clock */
 
-    server_listen(server);
+    /* Set up server :: Command*/
+    server_t* server_cmd = NULL;
+    server_alloc(&server_cmd,port, 10);
+
+    server_listen(server_cmd);
+    
+    /* Set up server :: TMananger*/
+    server_t* server_tman = NULL;
+    server_alloc(&server_tman,port, 10);
+
+    server_listen(server_tman);
+
 
     uint32_t recv_port;
     message_t msg;
 
     while(1){
-    server_recv(server,&msg,&recv_port);
+        server_recv(server_cmd,&msg,&recv_port);
 
-    /* Handle Message */
-    switch (msg.type){
-        case BEGINTX:
-            // Send message to transaction manager
-           server_send(server,msg.strdata,msg.port,&msg);
-            break;
-        case JOINTX:
-            break;
-        case NEW_A:
-            break;
-        case NEW_B:
-            break;
-        case NEW_IDSTR:
-            break;
-        case DELAY_RESPONSE:
-            break;
-        case CRASH:
-            break;
-        case COMMIT:
-            break;
-        case COMMIT_CRASH:
-            break;
-        case ABORT:
-            break;
-        case ABORT_CRASH:
-            break;
-        case VOTE_ABORT:
-            break;
+        /* Handle Message */
+        switch (msg.type){
+            case BEGINTX:
+                /* Send begin transaction to the transaction manager */
+                server_send(server_cmd,msg.strdata,msg.port,&msg);
+                
+                /* Create log entry */
+               
+                //TODO: If the transaction ID is already used log it to shiviz 
+                break;
+            case JOINTX:
+                /* Join this worker worker to the given transaction */
+
+                //TODO: Handle success or failure from transaction manager
+                break;
+            case NEW_A:
+                /* Change the value of the A object to a new value*/
+
+                //TODO: Check if transaction is currently happening
+                    // If not, change it and save it
+               
+                break;
+            case NEW_B:
+                /* Change the value of the B object to a new value*/
+               //TODO: Check if transaction is currently happening
+                        // If not, change it and save it
+                break;
+            case NEW_IDSTR:
+                /* change the value of the ID string*/
+
+                break;
+            case DELAY_RESPONSE:
+                /* Create log entry */
+               
+                break;
+            case CRASH:
+                /* Crash worker */
+                exit(1); 
+                break;
+            case COMMIT:
+                /* ------Phase 1----*/
+                /* Send commit request to tmanager */
+
+                /* Wait for prepare to commit message */
+                /* Create log entry: Prepared */
+               
+                /* Send Prepared message to tmanager*/
+
+                /* ------Phase 2----*/
+                /* Wait for committed message from tmanager */
+
+                /* When committed received, log to file: committed*/
+                break;
+            case COMMIT_CRASH:
+                /* Create log entry */
+               
+                break;
+            case ABORT:
+                /* Create log entry */
+               
+                break;
+            case ABORT_CRASH:
+                /* Create log entry */
+               
+                break;
+            case VOTE_ABORT:
+                /* Create log entry */
+               
+                break;
         }
     }
 

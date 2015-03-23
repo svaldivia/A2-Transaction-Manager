@@ -11,6 +11,7 @@ struct {
   int A;
   int B;
   vclock_t vectorClock[MAX_NODES];
+
 } ObjectData;
 
 #endif /* TWORKER_H */
