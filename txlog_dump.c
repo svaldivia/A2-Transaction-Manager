@@ -8,7 +8,7 @@ vclock_t vclock[MAX_NODES];
 int main(int argc, char* argv[])
 {
     txlog_t* log;
-    txlog_open(&log, "test_log.dat");
+    txlog_open(&log, argv[1]);
 
     txlog_read_clock(log, vclock);
 

@@ -126,6 +126,10 @@ void* tx_worker_thread(void* params)
                     running = false;
                 break;
             }
+
+            default:
+                printf("unknown command\n"); 
+                break;
         }
     }
     

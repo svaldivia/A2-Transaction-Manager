@@ -225,6 +225,10 @@ int main(int argc, char ** argv)
                 wstate.do_commit = false;
                
                 break;
+
+            default:
+                printf("unknown command\n"); 
+                break;
         }
     }
 
