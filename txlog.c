@@ -103,13 +103,13 @@ void txlog_sync(txlog_t* log)
 
 /** copies a vector clock from the given pointer to the log file */
 void txlog_write_clock(txlog_t* log, vclock_t* clock) {
-    memcpy(log->header->vclock, clock, sizeof(txlog_head_t));
+    memcpy(log->header->vclock, clock, MAX_NODES * sizeof(vclock_t));
     txlog_sync(log);
 }
 
 /** reads a vector clock from the log file to the given pointer */
 void txlog_read_clock(txlog_t* log, vclock_t* out_clock) {
-    memcpy(out_clock, log->header->vclock, sizeof(txlog_head_t));
+    memcpy(out_clock, log->header->vclock, MAX_NODES * sizeof(vclock_t));
     txlog_sync(log);
 }
 
@@ -131,4 +131,11 @@ void txlog_read_entry(txlog_t* log, uint32_t idx, txlog_entry_t* out_entry)
     off_t offset = sizeof(txlog_head_t) + idx * sizeof(txlog_entry_t);
     lseek(log->file, offset, SEEK_SET);
     read(log->file, out_entry, sizeof(txlog_entry_t));
+}
+
+void txentry_init(txlog_entry_t* entry, logEntryType type, uint32_t tid, vclock_t* vclock) {
+    memset(entry, 0, sizeof(txlog_entry_t));
+    memcpy(entry->vclock, vclock, MAX_NODES * sizeof(vclock_t));
+    entry->type = type;
+    entry->transaction = tid;
 }

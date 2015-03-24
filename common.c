@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 
@@ -100,6 +101,29 @@ void vclock_increment(uint32_t my_id, vclock_t* vclock) {
         }
     }
     printf("Could not increment vector clock, node ID %d doesn't exist\n", my_id);
+    exit(1);
+}
+
+bool vclock_has(vclock_t* vclock ,uint32_t id) {
+    int c;
+    for (c = 0; c < MAX_NODES; c++) 
+        if (vclock[c].nodeId == id)
+            return true;
+    return false;
+}
+
+void vclock_add(vclock_t* vclock, uint32_t id) 
+{
+    int c;
+    for (c = 0; c < MAX_NODES; c++) {
+        if (vclock[c].nodeId == 0) {
+            vclock[c].nodeId = id;
+            vclock[c].time = 1;
+            return;
+        }
+    }
+
+    printf("Could not add node %d to vector clock, no empty slots\n", id);
     exit(1);
 }
 

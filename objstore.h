@@ -16,7 +16,8 @@ typedef struct objstore_t objstore_t;
 
 void objstore_init(objstore_t** store_ptr, const char* dataFileName);
 void objstore_close(objstore_t** store_ptr);
-void objstore_sync(objstore_t* store);
+void objstore_sync(objstore_t* store, vclock_t* vclock);
+void objstore_dump(objstore_t* store);
 
 int objstore_get_a(objstore_t* store);
 int objstore_get_b(objstore_t* store);

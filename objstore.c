@@ -55,20 +55,18 @@ void objstore_init(objstore_t** store_ptr, const char* dataFileName)
         exit(-1);
     }
 
-    char time_str[32];
-    struct tm* ltime = localtime(&store->lastUpdateTime.tv_sec);
-    strftime(time_str, 32, "%Y-%m-%d %H:%M:%S", ltime);
-    printf("Object store initialized. Last written at %s\n", time_str);
-
     *store_ptr = store;
 }
   
-void objstore_sync(objstore_t* store)
+void objstore_sync(objstore_t* store, vclock_t* vclock)
 {
-    assert(store != NULL);
+    assert(store);
 
     /* Set last update time */
     gettimeofday(&store->lastUpdateTime, NULL);
+
+    /* copy vector clock */
+    memcpy(store->vclock, vclock, MAX_NODES * sizeof(vclock_t));
 
     /* Flush to disc */
     int r = msync(store, sizeof(objstore_t), MS_SYNC);
@@ -105,4 +103,21 @@ void objstore_close(objstore_t** store_ptr)
     }
 
     *store_ptr = NULL;
+}
+
+void objstore_dump(objstore_t* store) 
+{
+    printf("Object file dump:\n");
+
+    printf("  A  = %d\n", objstore_get_a(store));
+    printf("  B  = %d\n", objstore_get_b(store));
+    printf("  ID = '%s'\n", objstore_get_id(store));
+
+    printf("Vector clock:\n");
+    vclock_dump(store->vclock);
+
+    char time_str[32];
+    struct tm* ltime = localtime(&store->lastUpdateTime.tv_sec);
+    strftime(time_str, 32, "%Y-%m-%d %H:%M:%S", ltime);
+    printf("Last written at %s\n", time_str);
 }

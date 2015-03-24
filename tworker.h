@@ -33,8 +33,7 @@ typedef struct worker_state_t worker_state_t;
 
 int get_node_id();
 
-void tx_manager_spawn(worker_state_t*, const char*, uint32_t);
+void tx_manager_spawn(worker_state_t*, const char*, uint32_t, uint32_t tid);
 void* tx_worker_thread(void* params);
-
 
 #endif /* TWORKER_H */

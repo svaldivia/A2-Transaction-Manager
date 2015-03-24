@@ -161,7 +161,7 @@ int  server_recv_timeout(server_t* server, message_t* message, struct sockaddr_i
     message_from_nbo(message);
 
     //printf("Received %s from %d\n", message_string(message), *recv_port);
-    printf("Received %s %d\n", message_string(message), ntohs(recv_addr->sin_port));
+    printf("Received %s on port %d\n", message_string(message), ntohs(recv_addr->sin_port));
     
     return (int)len;
 }

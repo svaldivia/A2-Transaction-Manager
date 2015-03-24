@@ -7,19 +7,22 @@
 #include "server.h"
 #include "tworker.h"
 
-void tx_manager_spawn(worker_state_t* state, const char* tm_host, uint32_t tm_port) 
+void tx_manager_spawn(worker_state_t* wstate, const char* tm_host, uint32_t tm_port, uint32_t transaction) 
 {
-    state->is_active = true;
-    state->server = NULL;
-    state->tm_port = tm_port;
-    strcpy(state->tm_host, tm_host);
+    wstate->is_active = true;
+    wstate->transaction = transaction;
+    wstate->server = NULL;
+    wstate->tm_port = tm_port;
+    wstate->do_abort = false;
+    wstate->do_commit = true;
+    strcpy(wstate->tm_host, tm_host);
 
     /* Set up server :: TMananger*/
-    server_alloc(&state->server, 0, 10);
-    server_listen(state->server);
+    server_alloc(&wstate->server, 0, 10);
+    server_listen(wstate->server);
 
     pthread_t thread;
-    pthread_create(&thread, NULL, tx_worker_thread, (void*)state); 
+    pthread_create(&thread, NULL, tx_worker_thread, (void*)wstate); 
 }
 
 void* tx_worker_thread(void* params) 
@@ -28,13 +31,16 @@ void* tx_worker_thread(void* params)
 
     printf("Started TM thread: (%s:%d)\n", wstate->tm_host, wstate->tm_port);
 
+    int bytes = 0;
     int running = true;
     struct sockaddr_in recv_addr;
     message_t msg;
 
     while(1) 
     {
-        server_recv(wstate->server, &msg, &recv_addr);
+        bytes = server_recv(wstate->server, &msg, &recv_addr);
+        if (bytes <= 0)
+            continue;
 
         /* update vector clock */
         vclock_update(wstate->node_id, wstate->vclock, msg.vclock);
@@ -53,7 +59,9 @@ void* tx_worker_thread(void* params)
                     server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &vote);
 
                     /* log prepared */
-
+                    txlog_entry_t entry;
+                    txentry_init(&entry, LOG_PREPARED, wstate->transaction, wstate->vclock);
+                    txlog_append(wstate->txlog, &entry);
 
                     break;
                 }
@@ -63,6 +71,10 @@ void* tx_worker_thread(void* params)
                     vote.type = VOTE_ABORT;
                     shitviz_append(wstate->node_id, "Voting ABORT", wstate->vclock);
                     server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &vote);
+
+                    /* reset state */
+                    wstate->do_abort = false;
+                    wstate->do_commit = true;
                     break;
                 }
 
@@ -74,7 +86,14 @@ void* tx_worker_thread(void* params)
                 /* log abort */
                 shitviz_append(wstate->node_id, "Abort", wstate->vclock);
 
-                /* roll back */
+                /* increment clock */
+                vclock_increment(wstate->node_id, wstate->vclock);
+
+                txlog_entry_t entry;
+                txentry_init(&entry, LOG_ABORT, wstate->transaction, wstate->vclock);
+                txlog_append(wstate->txlog, &entry);
+
+                /* TODO: fuuck we need to roll back */
 
                 /* exit transaction thread */
                 running = false;
@@ -84,6 +103,13 @@ void* tx_worker_thread(void* params)
             case COMMIT: {
                 /* log commit etc */
                 shitviz_append(wstate->node_id, "Commit", wstate->vclock);
+
+                /* increment clock */
+                vclock_increment(wstate->node_id, wstate->vclock);
+                
+                txlog_entry_t entry;
+                txentry_init(&entry, LOG_COMMIT, wstate->transaction, wstate->vclock);
+                txlog_append(wstate->txlog, &entry);
 
                 /* exit transaction thread */
                 running = false;

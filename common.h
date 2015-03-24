@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
+#include <stdbool.h>
 
 #define MAX_NODES 10
 #define HOSTLEN   64
@@ -23,5 +24,7 @@ void vclock_init(vclock_t* vclock);
 void vclock_update(uint32_t my_id, vclock_t* mine, vclock_t* other);
 void vclock_increment(uint32_t my_id, vclock_t* vclock);
 void vclock_dump(vclock_t* vclock);
+bool vclock_has(vclock_t* vclock, uint32_t);
+void vclock_add(vclock_t* vclock, uint32_t);
 
 #endif
