@@ -14,14 +14,15 @@
 #include "msg.h"
 #include "tmanager.h"
 #include "server.h"
+#include "txlog.h"
+#include "shitviz.h"
 
-vclock_t tm_clock;
 txmanager_t txmanager;
 
 
 int main(int argc, char ** argv) 
 {
-    char logFileName[128];
+    char txlogName[128];
     int  logfileFD;
     int  port;
 
@@ -30,40 +31,62 @@ int main(int argc, char ** argv)
         return -1;
     }
 
-    /* Port & log file name */
     port = atoi(argv[1]);
-    snprintf(logFileName, sizeof(logFileName), "TmanagerLog_%d.log", port);
 
     printf("Port number:              %d\n", port);
-    printf("Log file name:            %s\n", logFileName);
+    printf("Log file name:            %s\n", txlogName);
 
     /* Init vector clock */
-    vclock_init(&tm_clock);
+    vclock_init(txmanager.vclock);
     
-    /* */
+    /* Set up sever */
     txmanager.server = NULL;
     txmanager.port = port;
 
+    /* Check or Open log*/
+    sprintf(txlogName, "txlog_%d.data", txmanager.port);
+    txlog_open(&txmanager.txlog, txlogName); 
+    
     /* Set up server */
     server_alloc(&txmanager.server, port, 10);
     server_listen(txmanager.server);
 
+    /* Get the vector clock + set local clock */
+    txlog_read_clock(txmanager.txlog, txmanager.vclock);
+    if (!vclock_has(txmanager.vclock, txmanager.port)) {
+        vclock_add(txmanager.vclock, txmanager.port); 
+    }
+
+    shitviz_append(port, "Started manager", txmanager.vclock);
+   
     struct sockaddr_in recv_addr;
-    
     message_t msg;
+    int bytes;
+
     while(1) {
-        server_recv(txmanager.server, &msg, &recv_addr);
+
+        bytes = server_recv(txmanager.server, &msg, &recv_addr);
+        if ( bytes <= 0)
+            continue;
+
 
         /* Update vector clock */
-        vclock_update(port, &tm_clock, msg.vclock);
+        vclock_update(port, txmanager.vclock, msg.vclock);
         /* Increment clock */
-        vclock_increment(txmanager.port,&tm_clock);
+        vclock_increment(txmanager.port,txmanager.vclock);
         
         /* Handle message */
         switch(msg.type) {
             case BEGINTX:
-                printf("Begining a transaction");
+                printf("Begining a transaction: %d \n",msg.tid);
                 addTransaction(msg.tid,&recv_addr);
+                
+                /* log prepared */
+                shitviz_append(txmanager.port, "BEGINTX", txmanager.vclock);
+
+                txlog_entry_t entry;
+                txentry_init(&entry, LOG_BEGIN, msg.tid, txmanager.vclock);
+                txlog_append(txmanager.txlog, &entry);
                 break;
             case COMMIT: {
                 printf("Commit tid:%d request",msg.tid);
@@ -71,10 +94,14 @@ int main(int argc, char ** argv)
                 if (transaction == NULL){
                     printf("Transaction was not found");
                 } else {
+                    /* Change state of transaction */
+                    transaction->state = PREPARE_STATE;
+
                     /* Prepare to commit*/
                     message_t msg;
-                    message_init(&msg,&tm_clock);
+                    message_init(&msg,txmanager.vclock);
                     msg.type = PREPARE_TO_COMMIT;
+                    
                     /* Send to workers in transaction */ 
                     sendToAllWorkers(transaction, &msg);
                 }
@@ -87,13 +114,23 @@ int main(int argc, char ** argv)
                 if (transaction == NULL){
                     printf("Transaction was not found");
                 } else {
-                     /* Abort transaction*/
+                    /* Change transaction state */
+                    transaction->state = ABORT_STATE;
+
+                    /* Abort transaction*/
                     message_t msg;
-                    message_init(&msg,&tm_clock);
+                    message_init(&msg,txmanager.vclock);
                     msg.type = ABORT;
                 
                     /* Send to workers in transaction */ 
                     sendToAllWorkers(transaction, &msg);
+
+                    /* Log abort */
+                    shitviz_append(txmanager.port, "ABORT", txmanager.vclock);
+
+                    txlog_entry_t entry;
+                    txentry_init(&entry, LOG_ABORT, msg.tid, txmanager.vclock);
+                    txlog_append(txmanager.txlog, &entry);
                 }
                 break;
                 }
@@ -102,13 +139,16 @@ int main(int argc, char ** argv)
                 break;
             case JOINTX:
                 break;
+            default:
+                printf("...\n");
+                break;
         }
     }
-
+    
     return 0;
 }
 
-/* */
+/* Add transaction to array */
 transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
     int i;
     for (i = 0; i < MAX_TRANSACTIONS; i++){
@@ -117,7 +157,7 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
         if (transaction->tid == tid){
             /* Create error message*/
             message_t msg;
-            message_init(&msg,&tm_clock);
+            message_init(&msg,txmanager.vclock);
             msg.type = TX_ERROR;
             msg.value = 1;
             strcpy(msg.strdata,"TID already exists");
@@ -137,17 +177,17 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
             transaction->nodes[0].nid = ntohs(dest_addr->sin_port);
             memcpy(&transaction->nodes[0].address, dest_addr,sizeof (transaction_t));
             
-            printf("Transaction:\n tid: %d state: %d node:%d \n was added successfully",transaction->tid, transaction->state,transaction->nodes[0].nid);
+            printf("Transaction:: tid: %d state: %d\nnode:%d was added successfully\n",transaction->tid, transaction->state,transaction->nodes[0].nid);
             
             return transaction;
         }
     }
     /* Transaction log full */
-    printf("No more space in transaction manager");
+    printf("No more space in transaction manager\n");
     
     /* Create error message*/
     message_t msg;
-    message_init(&msg,&tm_clock);
+    message_init(&msg,txmanager.vclock);
     msg.type = TX_ERROR;
     msg.value = 1;
     strcpy(msg.strdata,"Transaction queue full");

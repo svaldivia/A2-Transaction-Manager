@@ -6,6 +6,8 @@
 
 #include "common.h"
 #include "server.h"
+#include "txlog.h"
+#include "shitviz.h"
 
 #define MAX_TRANSACTIONS (4)
 enum transaction_state {
@@ -35,7 +37,7 @@ typedef struct transaction_t transaction_t;
 struct txmanager_t 
 {
     server_t*     server;
-    FILE*         logfile;
+    txlog_t*      txlog;
     vclock_t      vclock[MAX_NODES];
     transaction_t transactions[MAX_TRANSACTIONS];
     uint32_t      port;
