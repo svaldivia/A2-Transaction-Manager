@@ -56,21 +56,51 @@ int main(int argc, char ** argv)
 
         /* Update vector clock */
         vclock_update(port, &tm_clock, msg.vclock);
-
+        /* Increment clock */
+        vclock_increment(txmanager.port,&tm_clock);
+        
         /* Handle message */
         switch(msg.type) {
             case BEGINTX:
                 printf("Begining a transaction");
                 addTransaction(msg.tid,&recv_addr);
                 break;
-            case COMMIT:
-                printf("Commit request");
+            case COMMIT: {
+                printf("Commit tid:%d request",msg.tid);
+                transaction_t* transaction = findTransaction(msg.tid);
+                if (transaction == NULL){
+                    printf("Transaction was not found");
+                } else {
+                    /* Prepare to commit*/
+                    message_t msg;
+                    message_init(&msg,&tm_clock);
+                    msg.type = PREPARE_TO_COMMIT;
+                    /* Send to workers in transaction */ 
+                    sendToAllWorkers(transaction, &msg);
+                }
                 break;
-            case ABORT:
-                printf("Aborting transaction");
+                }
+            case ABORT:{
+                printf("Aborting transaction tid:%d",msg.tid);
+                
+                transaction_t* transaction = findTransaction(msg.tid);
+                if (transaction == NULL){
+                    printf("Transaction was not found");
+                } else {
+                     /* Abort transaction*/
+                    message_t msg;
+                    message_init(&msg,&tm_clock);
+                    msg.type = ABORT;
+                
+                    /* Send to workers in transaction */ 
+                    sendToAllWorkers(transaction, &msg);
+                }
                 break;
+                }
             case PREPARED:
                 printf("Node is prepared");
+                break;
+            case JOINTX:
                 break;
         }
     }
@@ -82,8 +112,9 @@ int main(int argc, char ** argv)
 transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
     int i;
     for (i = 0; i < MAX_TRANSACTIONS; i++){
+        transaction_t* transaction = &txmanager.transactions[i];
         /* tid exists */
-        if (txmanager.transactions[i].tid == tid){
+        if (transaction->tid == tid){
             /* Create error message*/
             message_t msg;
             message_init(&msg,&tm_clock);
@@ -92,16 +123,23 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
             strcpy(msg.strdata,"TID already exists");
 
             /* send error */
-            vclock_increment(txmanager.port,&tm_clock);
             server_send(txmanager.server,dest_addr, &msg);
-        } else if(txmanager.transactions[i].state == COMMIT_STATE || txmanager.transactions[i].state == ABORT_STATE || txmanager.transactions[i].tid == 0) {
+
+        } else if(transaction->state == COMMIT_STATE || transaction->state == ABORT_STATE || transaction->tid == 0) {
+            
+            /* Reset Transaction */
+            memset(transaction,0,sizeof(transaction_t));
+
             /* Insert transaction */
-            txmanager.transactions[i].state = BEGIN_STATE;
-            txmanager.transactions[i].tid = tid;
-            txmanager.transactions[i].nodeCount = 1;
-            txmanager.transactions[i].nodes[0] = ntohs(dest_addr->sin_port);
-            printf("Transaction:\n tid: %d state: %d node:%d \n was added successfully",txmanager.transactions[i].tid, txmanager.transactions[i].state,txmanager.transactions[i].nodes[0]);
-            return &txmanager.transactions[i];
+            transaction->state = BEGIN_STATE;
+            transaction->tid = tid;
+            transaction->nodeCount = 1;
+            transaction->nodes[0].nid = ntohs(dest_addr->sin_port);
+            memcpy(&transaction->nodes[0].address, dest_addr,sizeof (transaction_t));
+            
+            printf("Transaction:\n tid: %d state: %d node:%d \n was added successfully",transaction->tid, transaction->state,transaction->nodes[0].nid);
+            
+            return transaction;
         }
     }
     /* Transaction log full */
@@ -114,13 +152,34 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
     msg.value = 1;
     strcpy(msg.strdata,"Transaction queue full");
     
-    vclock_increment(txmanager.port,&tm_clock);
     server_send(txmanager.server,dest_addr, &msg);
-
     return NULL;
 }
 
+/* Find transaction by TID */
+transaction_t* findTransaction(uint32_t tid){
+    int i;
+    for (i = 0; i < MAX_TRANSACTIONS; i++){
+        /* tid exists */
+        if (txmanager.transactions[i].tid == tid){
+            return &txmanager.transactions[i];
+        }
+    }
+    return NULL;
+}
 
-
-
+/* Send to all nodes in transaction */
+void sendToAllWorkers(transaction_t* transaction, message_t* msg){
+    int i;
+    for(i = 0; i<MAX_NODES; i++){
+        
+        worker_t* worker = &transaction->nodes[i];
+        
+        /* Send message to worker */
+        if(worker->nid !=0){
+            printf("Sending %d message to %d\n",msg->type, worker->nid);
+            server_send(txmanager.server,&worker->address, msg);
+        }
+    }
+}
 

@@ -16,11 +16,18 @@ enum transaction_state {
 };
 typedef enum transaction_state transaction_state;
 
+/* Store worker info */
+struct worker_t {
+    uint32_t nid;
+    struct sockaddr_in address;
+};
+typedef struct worker_t worker_t;
+
 /* Stores information about an ongoing transaction */
 struct transaction_t {
     transaction_state state;
     uint32_t tid;
-    uint32_t nodes[MAX_NODES];
+    worker_t nodes[MAX_NODES];
     uint32_t nodeCount;
 };
 typedef struct transaction_t transaction_t;
@@ -36,7 +43,12 @@ struct txmanager_t
 
 typedef struct txmanager_t txmanager_t;
 
-
+/* Add a transaction to queue*/
 transaction_t* addTransaction(uint32_t tid,struct sockaddr_in* dest_addr);
+/* Find by TID */
+transaction_t* findTransaction(uint32_t tid);
+/* Send a message to all workers in transaction */
+void sendToAllWorkers(transaction_t* transaction, message_t* msg);
+
 
 #endif
