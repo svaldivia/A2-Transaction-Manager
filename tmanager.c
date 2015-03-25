@@ -223,7 +223,7 @@ int main(int argc, char ** argv)
                 break;
                 }
             default:
-                printf("...\n");
+                printf("Unknown command %d\n", msg.type);
                 break;
         }
     }
@@ -302,7 +302,7 @@ void sendToAllWorkers(transaction_t* transaction, message_t* msg){
         if(worker->nid !=0){
             message_t send_msg;
             memcpy(&send_msg,msg,sizeof(message_t));
-            printf("Sending %s to %d\n", message_string(msg->type), worker->nid);
+            printf("Sending %s to %d\n", message_string(msg), worker->nid);
             server_send(txmanager.server,&worker->address, &send_msg);
         }
     }
