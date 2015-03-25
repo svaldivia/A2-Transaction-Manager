@@ -79,31 +79,38 @@ int main(int argc, char ** argv)
         switch(msg.type) {
             case BEGINTX:
                 printf("Begining a transaction: %d \n",msg.tid);
-                addTransaction(msg.tid,&recv_addr);
-                
-                /* log prepared */
-                shitviz_append(txmanager.port, "BEGINTX", txmanager.vclock);
+                if(addTransaction(msg.tid,&recv_addr)){
+                    /* log prepared */
+                    shitviz_append(txmanager.port, "BEGINTX", txmanager.vclock);
 
-                txlog_entry_t entry;
-                txentry_init(&entry, LOG_BEGIN, msg.tid, txmanager.vclock);
-                txlog_append(txmanager.txlog, &entry);
+                    txlog_entry_t entry;
+                    txentry_init(&entry, LOG_BEGIN, msg.tid, txmanager.vclock);
+                    txlog_append(txmanager.txlog, &entry);
+                } else {
+                    /* log prepared */
+                    shitviz_append(txmanager.port, "BEGINTX Failed", txmanager.vclock);
+                }
+                
                 break;
             case COMMIT: {
-                printf("Commit tid:%d request",msg.tid);
+                printf("Commit tid:%d request\n",msg.tid);
                 transaction_t* transaction = findTransaction(msg.tid);
                 if (transaction == NULL){
-                    printf("Transaction was not found");
+                    printf("Transaction was not found\n");
+                } if (transaction->state == PREPARE_STATE){
+                    printf("Transaction is already in prepare state\n");
+                    continue;
                 } else {
                     /* Change state of transaction */
                     transaction->state = PREPARE_STATE;
 
                     /* Prepare to commit*/
-                    message_t msg;
-                    message_init(&msg,txmanager.vclock);
-                    msg.type = PREPARE_TO_COMMIT;
+                    message_t msgCommit;
+                    message_init(&msgCommit,txmanager.vclock);
+                    msgCommit.type = PREPARE_TO_COMMIT;
                     
                     /* Send to workers in transaction */ 
-                    sendToAllWorkers(transaction, &msg);
+                    sendToAllWorkers(transaction, &msgCommit);
                 }
                 break;
                 }
@@ -134,16 +141,86 @@ int main(int argc, char ** argv)
                 }
                 break;
                 }
-            case PREPARED:
-                printf("Node is prepared");
+            case PREPARED:{
+                printf("Node is prepared\n");
+                //TODO: Same node 2 prepares D:
+
+                /* Get Transaction */
+                transaction_t* transaction = findTransaction(msg.tid);
+                /* Check if transaction aborted */
+                if(transaction->state == ABORT_STATE){ 
+                    message_t msg;
+                    message_init(&msg,txmanager.vclock);
+                    msg.type = TX_ERROR;
+                    msg.value = 1;
+                    strcpy(msg.strdata,"Transaction was already aborted\n");
+
+                    /* send error */
+                    server_send(txmanager.server,&recv_addr, &msg);
+                    continue;
+                }
+                
+                /* Reduce prepare counter */
+                transaction->nodeCount--;
+                
+                printf("%d nodes left to commit tid: %d\n",transaction->nodeCount,transaction->tid);
+
+                /* Check if all workers are prepared */
+                if(transaction->nodeCount <=0){
+                    printf("Lets commit tid: %d\n",transaction->tid);
+                    /* Commit transaction*/
+                    transaction->state = COMMIT_STATE;
+
+                    /* Create message */
+                    message_t msg;
+                    message_init(&msg,txmanager.vclock);
+                    msg.type = COMMIT;
+                
+                    /* Send to workers in transaction */ 
+                    sendToAllWorkers(transaction, &msg);
+
+                    /* Log abort */
+                    shitviz_append(txmanager.port, "COMMIT", txmanager.vclock);
+
+                    txlog_entry_t entry;
+                    txentry_init(&entry, LOG_COMMIT, msg.tid, txmanager.vclock);
+                    txlog_append(txmanager.txlog, &entry);
+                }
+
                 break;
-            case JOINTX:
-                printf("Node %d wants to join the party at tid: %d",msg.port,msg.tid);
+                }
+            case JOINTX:{
+                printf("Node %d wants to join the party at tid: %d\n",ntohs(recv_addr.sin_port),msg.tid);
+                /* Get Transaction */
+                transaction_t* transaction = findTransaction(msg.tid);
+                if(transaction == NULL){
+                    printf("Transaction was not found");
+                } else if(transaction->state == PREPARE_STATE || transaction->state == COMMIT_STATE || transaction->state == ABORT_STATE){
+                    /*Transaction could not be joined*/
+                    message_t msg;
+                    message_init(&msg,txmanager.vclock);
+                    msg.type = TX_ERROR;
+                    msg.value = 1;
+                    strcpy(msg.strdata,"Transaction was already completed or is preparing to commit");
 
-                /* Add worker to transaction */
+                    /* send error */
+                    server_send(txmanager.server,&recv_addr, &msg);
+                } else if(joinTransaction(transaction,recv_addr)){
+                    /* Worker joined */
+                    printWorkers(transaction);
+                } else {
+                    /*Transaction could not be joined*/
+                    message_t msg;
+                    message_init(&msg,txmanager.vclock);
+                    msg.type = TX_ERROR;
+                    msg.value = 1;
+                    strcpy(msg.strdata,"Transaction could not be joined");
 
-
+                    /* send error */
+                    server_send(txmanager.server,&recv_addr, &msg);
+                }
                 break;
+                }
             default:
                 printf("...\n");
                 break;
@@ -222,8 +299,10 @@ void sendToAllWorkers(transaction_t* transaction, message_t* msg){
         
         /* Send message to worker */
         if(worker->nid !=0){
+            message_t send_msg;
+            memcpy(&send_msg,msg,sizeof(message_t));
             printf("Sending %d message to %d\n",msg->type, worker->nid);
-            server_send(txmanager.server,&worker->address, msg);
+            server_send(txmanager.server,&worker->address, &send_msg);
         }
     }
 }
@@ -239,9 +318,20 @@ void printTransactions () {
         }
     }
 }
+/* Print workers*/
+void printWorkers(transaction_t* transaction){
+    printf("%d workers at Transaction party: %d\n",transaction->nodeCount,transaction->tid);
+    int i;
+    for(i = 0; i<MAX_NODES; i++){
+        worker_t* worker = &transaction->nodes[i];
+        printf("Worker: %d\n",worker->nid);
+    }
+}
+
 
 /* Add worker to transaction */
-bool joinTransaction(transaction_t* transaction, uint32_t worker_id, struct sockaddr_in address){
+bool joinTransaction(transaction_t* transaction,struct sockaddr_in address){
+    uint32_t worker_id = ntohs(address.sin_port);
     int i;
     for(i = 0; i <MAX_NODES; i++){
         worker_t* worker = &transaction->nodes[i];
@@ -249,9 +339,11 @@ bool joinTransaction(transaction_t* transaction, uint32_t worker_id, struct sock
         if(worker->nid == 0){
             worker->nid = worker_id;
             worker->address = address;
+            printf("Welcome to the party %d\n",worker_id);
+            transaction->nodeCount++;
             return true;
         }
     }
-    printf("Could not join worker %d, party is full",worker_id);
+    printf("Could not join worker %d, party is full\n",worker_id);
     return false;
 }

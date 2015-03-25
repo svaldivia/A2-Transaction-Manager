@@ -54,5 +54,7 @@ void sendToAllWorkers(transaction_t* transaction, message_t* msg);
 /* Print transactions */
 void printTransactions ();
 /* Add worker to transaction */
-bool joinTransaction(transaction_t* transaction, uint32_t worker_id, struct sockaddr_in address);
+bool joinTransaction(transaction_t* transaction, struct sockaddr_in address);
+/* Print workers*/
+void printWorkers(transaction_t* transaction);
 #endif

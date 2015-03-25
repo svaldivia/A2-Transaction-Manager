@@ -52,6 +52,7 @@ void* tx_worker_thread(void* params)
             case PREPARE_TO_COMMIT: {
                 message_t vote;
                 message_init(&vote, wstate->vclock);
+                vote.tid = wstate->transaction;
 
                 /* vote commit? */
                 if (wstate->do_commit) {
