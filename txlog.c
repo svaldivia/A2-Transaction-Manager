@@ -128,7 +128,7 @@ void txlog_append(txlog_t* log, txlog_entry_t* entry)
     txentry_print(entry);
 }
 
-/** reads a log entry with the given index */
+/* reads a log entry with the given index */
 void txlog_read_entry(txlog_t* log, uint32_t idx, txlog_entry_t* out_entry) 
 {
     off_t offset = sizeof(txlog_head_t) + idx * sizeof(txlog_entry_t);
@@ -136,6 +136,20 @@ void txlog_read_entry(txlog_t* log, uint32_t idx, txlog_entry_t* out_entry)
     read(log->file, out_entry, sizeof(txlog_entry_t));
 }
 
+/* returns true if the given transaction id has not yet been used */
+bool txlog_free_id(txlog_t* txlog, uint32_t id) 
+{
+    int i;
+    txlog_entry_t entry;
+    for(i = 0; i < txlog->header->txcount; i++) {
+        txlog_read_entry(log, i, &entry);
+        if (entry->transaction == id)
+            return false;
+    }
+    return true;
+}
+
+/* initializes a transaction log entry struct */
 void txentry_init(txlog_entry_t* entry, logEntryType type, uint32_t tid, vclock_t* vclock) {
     memset(entry, 0, sizeof(txlog_entry_t));
     memcpy(entry->vclock, vclock, MAX_NODES * sizeof(vclock_t));
@@ -143,6 +157,7 @@ void txentry_init(txlog_entry_t* entry, logEntryType type, uint32_t tid, vclock_
     entry->transaction = tid;
 }
 
+/* returns a string representation of a given log event type */
 const char* txentry_type_string(logEntryType type) {
     switch(type) {
         case LOG_BEGIN:     return "BEGIN";
@@ -154,6 +169,7 @@ const char* txentry_type_string(logEntryType type) {
     }
 }
 
+/* dump a tranaction log entry to standard output */
 void txentry_print(txlog_entry_t* entry) 
 {
     printf("Log Entry: %s (TID: %d)\n", txentry_type_string(entry->type), entry->transaction);

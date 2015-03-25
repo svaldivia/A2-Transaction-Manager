@@ -19,7 +19,6 @@
 
 txmanager_t txmanager = {0};
 
-
 int main(int argc, char ** argv) 
 {
     char txlogName[128];
@@ -33,8 +32,8 @@ int main(int argc, char ** argv)
 
     port = atoi(argv[1]);
 
-    printf("Port number:              %d\n", port);
-    printf("Log file name:            %s\n", txlogName);
+    printf("Port number:   %d\n", port);
+    printf("Log file name: %s\n", txlogName);
 
     /* Init vector clock */
     vclock_init(txmanager.vclock);
@@ -63,12 +62,11 @@ int main(int argc, char ** argv)
     message_t msg;
     int bytes;
 
-    while(1) {
-
+    while(1) 
+    {
         bytes = server_recv(txmanager.server, &msg, &recv_addr);
-        if ( bytes <= 0)
+        if (bytes <= 0)
             continue;
-
 
         /* Update vector clock */
         vclock_update(port, txmanager.vclock, msg.vclock);
@@ -76,8 +74,9 @@ int main(int argc, char ** argv)
         vclock_increment(txmanager.port,txmanager.vclock);
         
         /* Handle message */
-        switch(msg.type) {
-            case BEGINTX:
+        switch(msg.type) 
+        {
+            case BEGINTX: {
                 printf("Begining a transaction: %d \n",msg.tid);
                 if(addTransaction(msg.tid,&recv_addr)){
                     /* log prepared */
@@ -92,6 +91,7 @@ int main(int argc, char ** argv)
                 }
                 
                 break;
+            }
             case COMMIT: {
                 printf("Commit tid:%d request\n",msg.tid);
                 transaction_t* transaction = findTransaction(msg.tid);
@@ -113,8 +113,8 @@ int main(int argc, char ** argv)
                     sendToAllWorkers(transaction, &msgCommit);
                 }
                 break;
-                }
-            case ABORT:{
+            }
+            case ABORT: {
                 printf("Aborting transaction tid:%d",msg.tid);
                 
                 transaction_t* transaction = findTransaction(msg.tid);
@@ -140,7 +140,7 @@ int main(int argc, char ** argv)
                     txlog_append(txmanager.txlog, &entry);
                 }
                 break;
-                }
+            }
             case PREPARED:{
                 printf("Node is prepared\n");
                 //TODO: Same node 2 prepares D:
@@ -189,7 +189,7 @@ int main(int argc, char ** argv)
                 }
 
                 break;
-                }
+            }
             case JOINTX:{
                 printf("Node %d wants to join the party at tid: %d\n",ntohs(recv_addr.sin_port),msg.tid);
                 /* Get Transaction */
@@ -202,7 +202,7 @@ int main(int argc, char ** argv)
                     message_init(&msg,txmanager.vclock);
                     msg.type = TX_ERROR;
                     msg.value = 1;
-                    strcpy(msg.strdata,"Transaction was already completed or is preparing to commit");
+                    strcpy(msg.strdata, "Transaction was already completed or is preparing to commit");
 
                     /* send error */
                     server_send(txmanager.server,&recv_addr, &msg);
@@ -215,13 +215,13 @@ int main(int argc, char ** argv)
                     message_init(&msg,txmanager.vclock);
                     msg.type = TX_ERROR;
                     msg.value = 1;
-                    strcpy(msg.strdata,"Transaction could not be joined");
+                    strcpy(msg.strdata, "Transaction could not be joined");
 
                     /* send error */
                     server_send(txmanager.server,&recv_addr, &msg);
                 }
                 break;
-                }
+            }
             default:
                 printf("Unknown command %d\n", msg.type);
                 break;
@@ -232,7 +232,8 @@ int main(int argc, char ** argv)
 }
 
 /* Add transaction to array */
-transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
+transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr)
+{
     int i;
     for (i = 0; i < MAX_TRANSACTIONS; i++){
         transaction_t* transaction = &txmanager.transactions[i];
@@ -307,6 +308,7 @@ void sendToAllWorkers(transaction_t* transaction, message_t* msg){
         }
     }
 }
+
 /* print transactions */
 void printTransactions () {
     int i;
@@ -319,6 +321,7 @@ void printTransactions () {
         }
     }
 }
+
 /* Print workers*/
 void printWorkers(transaction_t* transaction){
     printf("%d workers at Transaction party: %d\n",transaction->nodeCount,transaction->tid);
@@ -328,7 +331,6 @@ void printWorkers(transaction_t* transaction){
         printf("Worker: %d\n",worker->nid);
     }
 }
-
 
 /* Add worker to transaction */
 bool joinTransaction(transaction_t* transaction,struct sockaddr_in address){

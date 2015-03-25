@@ -2,6 +2,7 @@
 #define TXLOG_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "common.h"
 
@@ -50,6 +51,7 @@ void txlog_close(txlog_t** log_ptr);
 void txlog_write_clock(txlog_t* txlog, vclock_t* vclock);
 void txlog_read_clock(txlog_t* txlog, vclock_t* out_clock);
 void txlog_append(txlog_t* txlog, txlog_entry_t* entry);
+bool txlog_free_id(txlog_t* txlog, uint32_t id);
 
 void txlog_read_entry(txlog_t* txlog, uint32_t idx, txlog_entry_t* out_entry);
 
