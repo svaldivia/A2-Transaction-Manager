@@ -117,7 +117,7 @@ void* tx_worker_thread(void* params)
 
             case TX_ERROR: {
                 char err_buff[512];
-                sprintf(err_buff, "Transaction error: %s", msg.strdata);
+                sprintf(err_buff, "Manager Error: %s", msg.strdata);
                 shitviz_append(wstate->node_id, err_buff, wstate->vclock);
 
                 /* if value=1 then exit the transaction thread */

@@ -73,4 +73,6 @@ cmd
 tworker
 dumpObject
 
-
+*.data
+*.log
+*.dSYM

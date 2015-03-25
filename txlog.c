@@ -122,7 +122,9 @@ void txlog_append(txlog_t* log, txlog_entry_t* entry)
 
     /* increment number of transactions */
     log->header->tx_count++;
-    txlog_sync(log);
+
+    /* update vector clock & sync */
+    txlog_write_clock(log, entry->vclock);
 }
 
 /** reads a log entry with the given index */

@@ -116,17 +116,19 @@ void message_from_nbo(message_t* msg)
 const char* message_string(message_t* msg) 
 {
     switch(msg->type) {
-        case BEGINTX:        return "Begin Transaction";
-        case JOINTX:         return "Join Transaction";
-        case NEW_A:          return "New A";
-        case NEW_B:          return "New B";
-        case NEW_IDSTR:      return "New ID String";
-        case DELAY_RESPONSE: return "Delay Response";
-        case COMMIT:         return "Commit";
-        case COMMIT_CRASH:   return "Commit Crash";
-        case ABORT:          return "Abort";
-        case ABORT_CRASH:    return "Abort Crash";
-        case VOTE_ABORT:     return "Vote Abort";
-        default:             return "Unknown";
+        case BEGINTX:           return "Begin Transaction";
+        case JOINTX:            return "Join Transaction";
+        case NEW_A:             return "New A";
+        case NEW_B:             return "New B";
+        case NEW_IDSTR:         return "New ID String";
+        case DELAY_RESPONSE:    return "Delay Response";
+        case COMMIT:            return "Commit";
+        case COMMIT_CRASH:      return "Commit Crash";
+        case ABORT:             return "Abort";
+        case ABORT_CRASH:       return "Abort Crash";
+        case VOTE_ABORT:        return "Vote Abort";
+        case PREPARE_TO_COMMIT: return "Prepare to Commit";
+        case PREPARED:          return "Prepared";
+        default:                return "Unknown";
     }
 }
