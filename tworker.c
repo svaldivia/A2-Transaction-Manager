@@ -97,8 +97,14 @@ int main(int argc, char ** argv)
                 tx_manager_spawn(&wstate, (const char*)&msg.strdata, msg.port, msg.tid);
                 assert(wstate.server);
 
+                /* create message to send to TM */
+                message_t begin;
+                message_init(&begin, wstate.vclock);
+                begin.type = BEGINTX;
+                begin.tid  = msg.tid;
+
                 /* Send begin transaction to the transaction manager */
-                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &msg);
+                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &begin);
                 
                 /* Create log entry */
                 txlog_entry_t entry;
@@ -111,14 +117,19 @@ int main(int argc, char ** argv)
 
             case JOINTX: {
                 if (wstate.is_active) {
-                    printf("ERROR: Transaction already active\n");
+                    printf("ERROR: Worker is already in an active transaction\n");
                     break;
                 }
                 tx_manager_spawn(&wstate, (const char*)&msg.strdata, msg.port, msg.tid);
                 assert(wstate.server);
 
+                message_t join;
+                message_init(&join, wstate.vclock);
+                join.type = JOINTX;
+                join.tid  = msg.tid;
+
                 /* Join this worker worker to the given transaction */
-                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &msg);
+                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &join);
 
                 txlog_entry_t entry;
                 txentry_init(&entry, LOG_BEGIN, wstate.transaction, wstate.vclock);
@@ -141,7 +152,10 @@ int main(int argc, char ** argv)
 
                 objstore_set_a(wstate.store, msg.value);
                 objstore_sync(wstate.store, wstate.vclock);
-                printf("A = %d\n", objstore_get_a(wstate.store));
+
+                char strbuff[32];
+                snprintf(strbuff, 32, "Set A = %d\n", objstore_get_a(wstate.store));
+                shitviz_append(wstate.node_id, strbuff, wstate.vclock);
                 break;
             }
 
@@ -160,6 +174,10 @@ int main(int argc, char ** argv)
                 objstore_set_b(wstate.store, msg.value);
                 objstore_sync(wstate.store, wstate.vclock);
                 printf("B = %d\n", objstore_get_b(wstate.store));
+
+                char strbuff[32];
+                snprintf(strbuff, 32, "Set B = %d\n", objstore_get_b(wstate.store));
+                shitviz_append(wstate.node_id, strbuff, wstate.vclock);
                 break;
             }
 
@@ -177,14 +195,25 @@ int main(int argc, char ** argv)
 
                 objstore_set_id(wstate.store, msg.strdata);
                 objstore_sync(wstate.store, wstate.vclock);
-                printf("ID = %s\n", objstore_get_id(wstate.store));
+
+                char strbuff[128];
+                snprintf(strbuff, 128, "Set ID = %s\n", objstore_get_id(wstate.store));
+                shitviz_append(wstate.node_id, strbuff, wstate.vclock);
                 break;
             }
 
-            case DELAY_RESPONSE:
+            case DELAY_RESPONSE: {
                 /* Create log entry? */
-               
+
+                message_t delay;
+                message_init(&delay, wstate.vclock);
+                message_write_delay(&delay, msg.delay);
+
+                shitviz_append(wstate.node_id, "Passing DELAY to manager", wstate.vclock);
+
+                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &delay);
                 break;
+            }
 
             case CRASH:
                 /* Crash worker */
@@ -192,10 +221,23 @@ int main(int argc, char ** argv)
                 break;
 
             case COMMIT:
+                if (!wstate.is_active) {
+                    printf("Cannot commit - no transaction active\n");
+                    break;
+                }
+
                 wstate.do_abort = false;
                 wstate.do_commit = true;
-                /* ------Phase 1----*/
+
+                message_t commit;
+                message_init(&commit, wstate.vclock);
+                message_write_commit(&commit);
+                commit.tid = wstate.transaction;
+
+                shitviz_append(wstate.node_id, "Passing COMMIT to manager", wstate.vclock);
+                
                 /* Send commit request to tmanager */
+                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &commit);
 
                 /* Wait for prepare to commit message */
                 /* Create log entry: Prepared */

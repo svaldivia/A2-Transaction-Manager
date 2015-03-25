@@ -20,7 +20,7 @@ void shitviz_append(uint32_t id, char* msg, vclock_t* vclock)
 
     /* print message */
     fprintf(_SHITVIZ_FD, "%s\n", msg);
-    fprintf(stdout, "Shitviz: %s\n", msg);
+    fprintf(stdout, "ShiViz: %s\n", msg);
 
     fprintf(_SHITVIZ_FD, "N%d { ", id);
 

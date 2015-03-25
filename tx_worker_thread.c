@@ -36,7 +36,7 @@ void* tx_worker_thread(void* params)
     struct sockaddr_in recv_addr;
     message_t msg;
 
-    while(1) 
+    while(running) 
     {
         bytes = server_recv(wstate->server, &msg, &recv_addr);
         if (bytes <= 0)
@@ -62,7 +62,6 @@ void* tx_worker_thread(void* params)
                     txlog_entry_t entry;
                     txentry_init(&entry, LOG_PREPARED, wstate->transaction, wstate->vclock);
                     txlog_append(wstate->txlog, &entry);
-
                     break;
                 }
 

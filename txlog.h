@@ -15,7 +15,7 @@ enum logEntryType
     LOG_UPDATE,
 };
 
-typedef enum logEntryType logEntryType;
+typedef enum   logEntryType logEntryType;
 typedef struct txlog_t txlog_t;
 typedef struct txlog_head_t txlog_head_t;
 typedef struct txlog_entry_t txlog_entry_t;

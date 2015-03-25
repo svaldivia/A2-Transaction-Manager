@@ -65,7 +65,7 @@ void vclock_update(uint32_t my_id, vclock_t* mine, vclock_t* other)
         int j;
         for(j = 0; j < MAX_NODES; j++) 
         {
-            if (mine[j].nodeId == 0)
+            if (mine[j].nodeId == 0 && firstEmpty == -1)
                 firstEmpty = j;
 
             if (mine[j].nodeId == other[i].nodeId) {
@@ -75,14 +75,14 @@ void vclock_update(uint32_t my_id, vclock_t* mine, vclock_t* other)
         }
 
         /* It exists! */
-        if (index > 0) {
+        if (index >= 0) {
             if (mine[index].time < other[i].time)
                 mine[index].time = other[i].time;
             continue;
         }
 
         /* Does not yet exist but we have room for it in our array */
-        if (firstEmpty > 0) {
+        if (firstEmpty >= 0) {
             mine[firstEmpty] = other[i];
             continue;
         }

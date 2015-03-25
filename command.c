@@ -15,6 +15,7 @@
 
 /* Input buffer */
 char cmd_buffer[CMD_BUFFER_SIZE]; 
+char last_buffer[CMD_BUFFER_SIZE];
 
 /* Current comand */
 char* cmd_args[CMD_SIZE];
@@ -53,6 +54,10 @@ int main(int argc, char* argv[])
         while(cmd_name[x] != '\0') {
             cmd_name[x] = tolower(cmd_name[x]);
             x++;
+        }
+
+        if (strlen(cmd_name) == 0) {
+            /* repeat last command */
         }
 
         /* Handle commands */
