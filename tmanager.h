@@ -51,6 +51,6 @@ transaction_t* addTransaction(uint32_t tid,struct sockaddr_in* dest_addr);
 transaction_t* findTransaction(uint32_t tid);
 /* Send a message to all workers in transaction */
 void sendToAllWorkers(transaction_t* transaction, message_t* msg);
-
-
+/* Print transactions */
+void printTransactions ();
 #endif

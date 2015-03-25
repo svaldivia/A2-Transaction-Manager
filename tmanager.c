@@ -17,7 +17,7 @@
 #include "txlog.h"
 #include "shitviz.h"
 
-txmanager_t txmanager;
+txmanager_t txmanager = {0};
 
 
 int main(int argc, char ** argv) 
@@ -175,16 +175,16 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
             transaction->tid = tid;
             transaction->nodeCount = 1;
             transaction->nodes[0].nid = ntohs(dest_addr->sin_port);
-            memcpy(&transaction->nodes[0].address, dest_addr,sizeof (transaction_t));
+            memcpy(&transaction->nodes[0].address, dest_addr,sizeof (struct sockaddr_in));
             
             printf("Transaction:: tid: %d state: %d\nnode:%d was added successfully\n",transaction->tid, transaction->state,transaction->nodes[0].nid);
-            
+            printTransactions();
             return transaction;
         }
     }
     /* Transaction log full */
     printf("No more space in transaction manager\n");
-    
+    printTransactions();
     /* Create error message*/
     message_t msg;
     message_init(&msg,txmanager.vclock);
@@ -222,4 +222,15 @@ void sendToAllWorkers(transaction_t* transaction, message_t* msg){
         }
     }
 }
-
+/* print transactions */
+void printTransactions () {
+    int i;
+    for(i = 0; i<MAX_TRANSACTIONS; i++){
+        transaction_t* transaction = &txmanager.transactions[i];
+        if(transaction->tid !=0){
+            printf("TID: %d\n",transaction->tid);
+        } else {
+            printf("TID: NULL\n");
+        }
+    }
+}
