@@ -9,8 +9,6 @@
 enum cmdType {
     BEGINTX = 1000,
 	JOINTX,
-    PREPARE_TO_COMMIT,
-    PREPARED,
     NEW_A,
 	NEW_B,
 	NEW_IDSTR,
@@ -22,6 +20,9 @@ enum cmdType {
     ABORT_CRASH, 
 	VOTE_ABORT,
 
+    ASK,
+    PREPARE_TO_COMMIT,
+    PREPARED,
     TX_ERROR,
 };
 

@@ -69,6 +69,13 @@ int main(int argc, char ** argv)
 
     shitviz_append(port, "Started worker", wstate.vclock);
 
+    /* 
+    if we're in PREPARED (uncertain)
+    wstate.uncertain = true;
+    wstate.is_active = true;
+    tx_manager_spawn(&wstate, (const char*)&msg.strdata, msg.port, msg.tid);
+    */
+
     /* Set up server :: Command */
     server_t* server_cmd = NULL;
     server_alloc(&server_cmd, port, 10);
@@ -192,10 +199,13 @@ int main(int argc, char ** argv)
                     entry.old_b = objstore_get_b(wstate.store);
                     strcpy(entry.old_id, objstore_get_id(wstate.store));
                     txlog_append(wstate.txlog, &entry);
-                }
 
-                objstore_set_id(wstate.store, msg.strdata);
-                objstore_sync(wstate.store, wstate.vclock);
+                    objstore_set_id(wstate.store, msg.strdata);
+                }
+                else {
+                    objstore_set_id(wstate.store, msg.strdata);
+                    objstore_sync(wstate.store, wstate.vclock);
+                }
 
                 char strbuff[128];
                 snprintf(strbuff, 128, "Set ID = %s\n", objstore_get_id(wstate.store));
@@ -276,10 +286,12 @@ int main(int argc, char ** argv)
                 /* log abort */
                 /* rollback */
 
+                wstate.do_commit = false;
+                wstate.do_abort = true;
+
                 message_t abort;
                 message_init(&abort, wstate.vclock);
                 message_write_abort(&abort);
-                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &abort);
                 shitviz_append(wstate.node_id, "Aborting transaction", wstate.vclock);
                 break;
             }

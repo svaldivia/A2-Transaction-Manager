@@ -268,7 +268,7 @@ void do_delay()
 void do_commit() 
 { 
     if (cmd_arg_count != 3) {
-        printf("usage: crash [worker_host] [worker_port]\n");
+        printf("usage: commit [worker_host] [worker_port]\n");
         return;
     }
 

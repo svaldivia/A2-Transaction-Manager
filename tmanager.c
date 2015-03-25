@@ -184,6 +184,7 @@ int main(int argc, char ** argv)
 
                     txlog_entry_t entry;
                     txentry_init(&entry, LOG_COMMIT, msg.tid, txmanager.vclock);
+                    entry.transaction = transaction->tid;
                     txlog_append(txmanager.txlog, &entry);
                 }
 
@@ -301,7 +302,7 @@ void sendToAllWorkers(transaction_t* transaction, message_t* msg){
         if(worker->nid !=0){
             message_t send_msg;
             memcpy(&send_msg,msg,sizeof(message_t));
-            printf("Sending %d message to %d\n",msg->type, worker->nid);
+            printf("Sending %s to %d\n", message_string(msg->type), worker->nid);
             server_send(txmanager.server,&worker->address, &send_msg);
         }
     }

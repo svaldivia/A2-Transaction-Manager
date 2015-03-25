@@ -124,6 +124,8 @@ void txlog_append(txlog_t* log, txlog_entry_t* entry)
 
     /* update vector clock & sync */
     txlog_write_clock(log, entry->vclock);
+
+    txentry_print(entry);
 }
 
 /** reads a log entry with the given index */
@@ -148,21 +150,16 @@ const char* txentry_type_string(logEntryType type) {
         case LOG_ABORT:     return "ABORT";
         case LOG_PREPARED:  return "PREPARED";
         case LOG_UPDATE:    return "UPDATE";
-
-        default: return "Unknown";
+        default:            return "Unknown";
     }
 }
 
 void txentry_print(txlog_entry_t* entry) 
 {
-    printf("Log Entry: %s\n", txentry_type_string(entry->type));
-    switch(entry->type) {
-        case LOG_COMMIT:
-        case LOG_UPDATE:
-            printf("  A  = %d\n", entry->old_a);
-            printf("  B  = %d\n", entry->old_b);
-            printf("  ID = '%s'\n", entry->old_id);
-            break;
-        default: break;
+    printf("Log Entry: %s (TID: %d)\n", txentry_type_string(entry->type), entry->transaction);
+    if (entry->type == LOG_UPDATE) {
+        printf("  A  = %d\n",   entry->old_a);
+        printf("  B  = %d\n",   entry->old_b);
+        printf("  ID = '%s'\n", entry->old_id);
     }
 }

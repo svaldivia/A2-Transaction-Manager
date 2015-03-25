@@ -27,6 +27,8 @@ struct worker_state_t
     bool is_active;
     bool do_commit;
     bool do_abort;
+
+    bool uncertain;
 };
 
 typedef struct worker_state_t worker_state_t;
