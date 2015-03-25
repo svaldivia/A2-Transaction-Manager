@@ -110,7 +110,6 @@ void txlog_write_clock(txlog_t* log, vclock_t* clock) {
 /** reads a vector clock from the log file to the given pointer */
 void txlog_read_clock(txlog_t* log, vclock_t* out_clock) {
     memcpy(out_clock, log->header->vclock, MAX_NODES * sizeof(vclock_t));
-    txlog_sync(log);
 }
 
 /** appends a log entry to the log file */
@@ -140,4 +139,30 @@ void txentry_init(txlog_entry_t* entry, logEntryType type, uint32_t tid, vclock_
     memcpy(entry->vclock, vclock, MAX_NODES * sizeof(vclock_t));
     entry->type = type;
     entry->transaction = tid;
+}
+
+const char* txentry_type_string(logEntryType type) {
+    switch(type) {
+        case LOG_BEGIN:     return "BEGIN";
+        case LOG_COMMIT:    return "COMMIT";
+        case LOG_ABORT:     return "ABORT";
+        case LOG_PREPARED:  return "PREPARED";
+        case LOG_UPDATE:    return "UPDATE";
+
+        default: return "Unknown";
+    }
+}
+
+void txentry_print(txlog_entry_t* entry) 
+{
+    printf("Log Entry: %s\n", txentry_type_string(entry->type));
+    switch(entry->type) {
+        case LOG_COMMIT:
+        case LOG_UPDATE:
+            printf("  A  = %d\n", entry->old_a);
+            printf("  B  = %d\n", entry->old_b);
+            printf("  ID = '%s'\n", entry->old_id);
+            break;
+        default: break;
+    }
 }

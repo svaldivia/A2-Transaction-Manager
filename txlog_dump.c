@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 
     for(i = 0; i < log->header->tx_count; i++) {
         txlog_read_entry(log, i, &entry);
-        printf("log entry type: %d\n", entry.type);
+        txentry_print(&entry);
     }
 
     entry.type = LOG_BEGIN;

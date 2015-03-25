@@ -59,6 +59,7 @@ int main(int argc, char ** argv)
     txlog_read_clock(wstate.txlog, wstate.vclock);
     if (!vclock_has(wstate.vclock, wstate.node_id)) {
         /* brand new object store?? */
+        printf("No vector clock stored\n");
         vclock_add(wstate.vclock, wstate.node_id); 
         objstore_sync(wstate.store, wstate.vclock);
     }
@@ -203,7 +204,10 @@ int main(int argc, char ** argv)
             }
 
             case DELAY_RESPONSE: {
-                /* Create log entry? */
+                if (!wstate.is_active) {
+                    shitviz_append(wstate.node_id, "Cannot pass delay - no active transaction", wstate.vclock);
+                    break;
+                }
 
                 message_t delay;
                 message_init(&delay, wstate.vclock);
@@ -222,7 +226,7 @@ int main(int argc, char ** argv)
 
             case COMMIT: {
                 if (!wstate.is_active) {
-                    printf("Cannot commit - no transaction active\n");
+                    shitviz_append(wstate.node_id, "Cannot commit - no active transaction", wstate.vclock);
                     break;
                 }
 
@@ -250,7 +254,7 @@ int main(int argc, char ** argv)
 
             case COMMIT_CRASH: {
                 if (!wstate.is_active) {
-                    printf("Cannot pass commit crash - no transaction active\n");
+                    shitviz_append(wstate.node_id, "Cannot pass commit crash - no active transaction", wstate.vclock);
                     break;
                 }
 
@@ -265,7 +269,7 @@ int main(int argc, char ** argv)
             /* abort current transaction */
             case ABORT: {
                 if (!wstate.is_active) {
-                    printf("Cannot abort - no transaction active\n");
+                    shitviz_append(wstate.node_id, "Cannot abort - no active transaction", wstate.vclock);
                     break;
                 }
 
@@ -282,7 +286,7 @@ int main(int argc, char ** argv)
 
             case ABORT_CRASH: {
                 if (!wstate.is_active) {
-                    printf("Cannot pass abort crash - no transaction active\n");
+                    shitviz_append(wstate.node_id, "Cannot pass abort crash - no active transaction", wstate.vclock);
                     break;
                 }
 

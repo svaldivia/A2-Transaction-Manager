@@ -53,5 +53,6 @@ void txlog_append(txlog_t* txlog, txlog_entry_t* entry);
 void txlog_read_entry(txlog_t* txlog, uint32_t idx, txlog_entry_t* out_entry);
 
 void txentry_init(txlog_entry_t* entry, logEntryType type, uint32_t tid, vclock_t* vclock);
+void txentry_print(txlog_entry_t* entry);
 
 #endif

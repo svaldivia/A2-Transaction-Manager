@@ -44,12 +44,13 @@ void* tx_worker_thread(void* params)
 
         /* update vector clock */
         vclock_update(wstate->node_id, wstate->vclock, msg.vclock);
+        vclock_increment(wstate->node_id, wstate->vclock);
+        txlog_write_clock(wstate->txlog, wstate->vclock);
         
         switch(msg.type)
         {
             case PREPARE_TO_COMMIT: {
                 message_t vote;
-                vclock_increment(wstate->node_id, wstate->vclock);
                 message_init(&vote, wstate->vclock);
 
                 /* vote commit? */
@@ -85,9 +86,6 @@ void* tx_worker_thread(void* params)
                 /* log abort */
                 shitviz_append(wstate->node_id, "Abort", wstate->vclock);
 
-                /* increment clock */
-                vclock_increment(wstate->node_id, wstate->vclock);
-
                 txlog_entry_t entry;
                 txentry_init(&entry, LOG_ABORT, wstate->transaction, wstate->vclock);
                 txlog_append(wstate->txlog, &entry);
@@ -103,11 +101,11 @@ void* tx_worker_thread(void* params)
                 /* log commit etc */
                 shitviz_append(wstate->node_id, "Commit", wstate->vclock);
 
-                /* increment clock */
-                vclock_increment(wstate->node_id, wstate->vclock);
-                
                 txlog_entry_t entry;
                 txentry_init(&entry, LOG_COMMIT, wstate->transaction, wstate->vclock);
+                entry.old_a  = objstore_get_a(wstate->store);
+                entry.old_b  = objstore_get_b(wstate->store);
+                strcpy(entry.old_id, objstore_get_id(wstate->store));
                 txlog_append(wstate->txlog, &entry);
 
                 /* exit transaction thread */
