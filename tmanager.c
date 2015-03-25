@@ -138,6 +138,11 @@ int main(int argc, char ** argv)
                 printf("Node is prepared");
                 break;
             case JOINTX:
+                printf("Node %d wants to join the party at tid: %d",msg.port,msg.tid);
+
+                /* Add worker to transaction */
+
+
                 break;
             default:
                 printf("...\n");
@@ -164,7 +169,7 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr){
 
             /* send error */
             server_send(txmanager.server,dest_addr, &msg);
-
+            return NULL;
         } else if(transaction->state == COMMIT_STATE || transaction->state == ABORT_STATE || transaction->tid == 0) {
             
             /* Reset Transaction */
@@ -228,9 +233,25 @@ void printTransactions () {
     for(i = 0; i<MAX_TRANSACTIONS; i++){
         transaction_t* transaction = &txmanager.transactions[i];
         if(transaction->tid !=0){
-            printf("TID: %d\n",transaction->tid);
+            printf("TID: %d state: %d\n",transaction->tid,transaction->state);
         } else {
             printf("TID: NULL\n");
         }
     }
+}
+
+/* Add worker to transaction */
+bool joinTransaction(transaction_t* transaction, uint32_t worker_id, struct sockaddr_in address){
+    int i;
+    for(i = 0; i <MAX_NODES; i++){
+        worker_t* worker = &transaction->nodes[i];
+        /* Add worker */
+        if(worker->nid == 0){
+            worker->nid = worker_id;
+            worker->address = address;
+            return true;
+        }
+    }
+    printf("Could not join worker %d, party is full",worker_id);
+    return false;
 }
