@@ -122,6 +122,7 @@ const char* message_string(message_t* msg)
         case NEW_B:             return "New B";
         case NEW_IDSTR:         return "New ID String";
         case DELAY_RESPONSE:    return "Delay Response";
+        case CRASH:             return "Crash";
         case COMMIT:            return "Commit";
         case COMMIT_CRASH:      return "Commit Crash";
         case ABORT:             return "Abort";

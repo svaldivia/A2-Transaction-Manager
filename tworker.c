@@ -220,14 +220,11 @@ int main(int argc, char ** argv)
                 exit(1); 
                 break;
 
-            case COMMIT:
+            case COMMIT: {
                 if (!wstate.is_active) {
                     printf("Cannot commit - no transaction active\n");
                     break;
                 }
-
-                wstate.do_abort = false;
-                wstate.do_commit = true;
 
                 message_t commit;
                 message_init(&commit, wstate.vclock);
@@ -249,24 +246,61 @@ int main(int argc, char ** argv)
 
                 /* When committed received, log to file: committed*/
                 break;
-            case COMMIT_CRASH:
-                /* Create log entry */
-                break;
+            }
 
-            case ABORT:
-                /* Create log entry */
-                break;
+            case COMMIT_CRASH: {
+                if (!wstate.is_active) {
+                    printf("Cannot pass commit crash - no transaction active\n");
+                    break;
+                }
 
-            case ABORT_CRASH:
-                /* Create log entry */
+                message_t commit_crash;
+                message_init(&commit_crash, wstate.vclock);
+                message_write_commit_crash(&commit_crash);
+                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &commit_crash);
+                shitviz_append(wstate.node_id, "Passing COMMIT CRASH to manager", wstate.vclock);
                 break;
+            }
+                               
+            /* abort current transaction */
+            case ABORT: {
+                if (!wstate.is_active) {
+                    printf("Cannot abort - no transaction active\n");
+                    break;
+                }
+
+                /* log abort */
+                /* rollback */
+
+                message_t abort;
+                message_init(&abort, wstate.vclock);
+                message_write_abort(&abort);
+                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &abort);
+                shitviz_append(wstate.node_id, "Aborting transaction", wstate.vclock);
+                break;
+            }
+
+            case ABORT_CRASH: {
+                if (!wstate.is_active) {
+                    printf("Cannot pass abort crash - no transaction active\n");
+                    break;
+                }
+
+                message_t abort_crash;
+                message_init(&abort_crash, wstate.vclock);
+                message_write_abort_crash(&abort_crash);
+                server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &abort_crash);
+                shitviz_append(wstate.node_id, "Passing ABORT CRASH to manager", wstate.vclock);
+                break;
+            }
                  
-            case VOTE_ABORT:
+            case VOTE_ABORT: {
                 /* Create log entry */
                 wstate.do_abort = true;
                 wstate.do_commit = false;
-               
+                shitviz_append(wstate.node_id, "Will vote ABORT on next PREPARE", wstate.vclock);
                 break;
+            }
 
             default:
                 printf("unknown command\n"); 

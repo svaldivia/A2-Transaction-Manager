@@ -15,7 +15,6 @@
 
 /* Input buffer */
 char cmd_buffer[CMD_BUFFER_SIZE]; 
-char last_buffer[CMD_BUFFER_SIZE];
 
 /* Current comand */
 char* cmd_args[CMD_SIZE];
@@ -56,10 +55,6 @@ int main(int argc, char* argv[])
             x++;
         }
 
-        if (strlen(cmd_name) == 0) {
-            /* repeat last command */
-        }
-
         /* Handle commands */
         if (strncmp(cmd_name, "begin", 5)        == 0) { do_begin();        continue; }
         if (strncmp(cmd_name, "join", 4)         == 0) { do_join();         continue; }
@@ -68,10 +63,10 @@ int main(int argc, char* argv[])
         if (strncmp(cmd_name, "newid", 5)        == 0) { do_newid();        continue; }
         if (strncmp(cmd_name, "crash", 5)        == 0) { do_crash();        continue; }
         if (strncmp(cmd_name, "delay", 5)        == 0) { do_delay();        continue; }
-        if (strncmp(cmd_name, "commit", 6)       == 0) { do_commit();       continue; }
         if (strncmp(cmd_name, "commitcrash", 11) == 0) { do_commit_crash(); continue; }
-        if (strncmp(cmd_name, "abort", 5)        == 0) { do_abort();        continue; }
+        if (strncmp(cmd_name, "commit", 6)       == 0) { do_commit();       continue; }
         if (strncmp(cmd_name, "abortcrash", 10)  == 0) { do_abort_crash();  continue; }
+        if (strncmp(cmd_name, "abort", 5)        == 0) { do_abort();        continue; }
         if (strncmp(cmd_name, "voteabort", 9)    == 0) { do_vote_abort();   continue; }
 
         if (strncmp(cmd_name, "exit", 4) == 0 || strncmp(cmd_name, "quit", 4) == 0)
