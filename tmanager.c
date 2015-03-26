@@ -89,14 +89,15 @@ int main(int argc, char ** argv)
 
                 message_t ask_msg;
                 message_init(&ask_msg, txmanager.vclock);
+                ask_msg.tid = entry.transaction;
                 switch(entry.type) {
                     case LOG_COMMIT:
-                        ask_msg.value = COMMIT;
+                        ask_msg.type = COMMIT;
                         server_send(txmanager.server, &recv_addr, &ask_msg);
                         shitviz_append(txmanager.port, "ASK: Commit", txmanager.vclock);
                         break;
                     case LOG_ABORT:
-                        ask_msg.value = ABORT;
+                        ask_msg.type = ABORT;
                         server_send(txmanager.server, &recv_addr, &ask_msg);
                         shitviz_append(txmanager.port, "ASK: Abort", txmanager.vclock);
                         break;
@@ -122,6 +123,7 @@ int main(int argc, char ** argv)
                 }
                 break;
             }
+
             case COMMIT: {
                 printf("Commit tid:%d request\n",msg.tid);
                 transaction_t* transaction = findTransaction(msg.tid);
@@ -267,11 +269,6 @@ int main(int argc, char ** argv)
                 }
                 break;
             }
-
-            case DELAY_RESPONSE:
-                txmanager.delay = msg.delay;
-                printf("Set response delay to %d seconds\n", txmanager.delay);
-                break;
 
             case ABORT_CRASH:
                 txmanager.abort_crash = true;

@@ -44,7 +44,6 @@ struct txmanager_t
     uint32_t      port;
 
     /* test settings */
-    uint32_t      delay;
     bool          commit_crash;
     bool          abort_crash;
 };

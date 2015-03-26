@@ -22,6 +22,10 @@ void tx_manager_spawn(worker_state_t* wstate, const char* tm_host, uint32_t tm_p
     int listen_port = 0;
     if (wstate->uncertain) 
         listen_port = wstate->txlog->header->tm_listen_port;
+    else {
+        wstate->txlog->header->tm_port = tm_port;
+        strcpy(wstate->txlog->header->tm_host, tm_host);
+    }
 
     /* Set up server :: TMananger*/
     server_alloc(&wstate->server, listen_port, 10);
@@ -29,8 +33,6 @@ void tx_manager_spawn(worker_state_t* wstate, const char* tm_host, uint32_t tm_p
 
     /* store ports & TM address in transaction log */
     wstate->txlog->header->tm_listen_port = wstate->server->port;
-    wstate->txlog->header->tm_port = tm_port;
-    strcpy(wstate->txlog->header->tm_host, tm_host);
 
     pthread_t thread;
     pthread_create(&thread, NULL, tx_worker_thread, (void*)wstate); 
@@ -51,8 +53,16 @@ void tx_worker_uncertain(worker_state_t* wstate)
 
         /* wait for reply */
         bytes = server_recv(wstate->server, &msg, &recv_addr); 
-        if (bytes <= 0)
+        if (bytes <= 0) {
+            /* ask what the fuck happened again */
+            message_t ask_msg;
+            message_init(&ask_msg, wstate->vclock);
+            ask_msg.type = ASK;
+            ask_msg.tid = wstate->transaction;
+
+            server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &ask_msg);
             continue;
+        }
 
         /* update vector clock */
         vclock_update(wstate->node_id, wstate->vclock, msg.vclock);
@@ -97,13 +107,6 @@ void tx_worker_uncertain(worker_state_t* wstate)
                 break;
         }
 
-        /* ask what the fuck happened before next loop */
-        message_t ask_msg;
-        message_init(&ask_msg, wstate->vclock);
-        ask_msg.type = ASK;
-        ask_msg.tid = wstate->transaction;
-
-        server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &ask_msg);
     }
 }
 
@@ -120,8 +123,12 @@ void* tx_worker_thread(void* params)
     message_t msg;
 
     /* if uncertain, wait */
-    if (wstate->uncertain)
+    if (wstate->uncertain) {
         tx_worker_uncertain(wstate);
+        /* we're not actually gonna go into the transaction loop,
+         * we just need an update on the current transaction */
+        running = false;
+    }
 
     while(running) 
     {

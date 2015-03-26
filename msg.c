@@ -130,6 +130,7 @@ const char* message_string(message_t* msg)
         case VOTE_ABORT:        return "Vote Abort";
         case PREPARE_TO_COMMIT: return "Prepare to Commit";
         case PREPARED:          return "Prepared";
+        case ASK:               return "Ask";
         default:                return "Unknown";
     }
 }
