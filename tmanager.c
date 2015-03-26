@@ -22,7 +22,6 @@ txmanager_t txmanager = {0};
 int main(int argc, char ** argv) 
 {
     char txlogName[128];
-    int  logfileFD;
     int  port;
 
     if (argc != 2) {
@@ -46,6 +45,7 @@ int main(int argc, char ** argv)
     sprintf(txlogName, "txlog_%d.data", txmanager.port);
     txlog_open(&txmanager.txlog, txlogName); 
     
+        
     /* Set up server */
     server_alloc(&txmanager.server, port, 10);
     server_listen(txmanager.server);
@@ -58,6 +58,11 @@ int main(int argc, char ** argv)
 
     shitviz_append(port, "Started manager", txmanager.vclock);
    
+    /* Check for rollback */ 
+    // Restore transactions
+
+    // Check last line to know current status
+
     struct sockaddr_in recv_addr;
     message_t msg;
     int bytes;
@@ -350,3 +355,39 @@ bool joinTransaction(transaction_t* transaction,struct sockaddr_in address){
     printf("Could not join worker %d, party is full\n",worker_id);
     return false;
 }
+
+void restoreTransactions(){
+    int i;
+    int j;
+    txlog_entry_t entry;   
+    txlog_entry_t entry_2;
+    bool transaction_completed = false;
+
+    for (i = 0; i < txmanager.txlog->header->tx_count; i++){
+        /* Look for begin entry*/
+        txlog_read_entry(txmanager.txlog,i,&entry);
+        if(entry.type == LOG_BEGIN){
+            /* Look for commit or abort */
+            transaction_completed = false;
+            for(j = i; j < txmanager.txlog->header->tx_count; j++){ 
+                txlog_read_entry(txmanager.txlog,j,&entry_2);
+                /*Check tid + if commit or abort*/
+                if(entry.transaction == entry_2.transaction && (entry_2.type == LOG_ABORT || entry_2.type == LOG_COMMIT)){
+                    transaction_completed = true;
+                    break;
+                }
+            }
+            if(!transaction_completed){
+                /* Append abort to transaction*/
+                txlog_entry_t abort_entry;
+                txentry_init(&abort_entry, LOG_ABORT, entry.transaction, txmanager.vclock);
+                txlog_append(txmanager.txlog, &entry);
+
+                /* Add to local transactions */
+
+            }
+        }
+    }
+}
+
+

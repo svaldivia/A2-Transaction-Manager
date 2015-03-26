@@ -141,12 +141,32 @@ bool txlog_free_id(txlog_t* txlog, uint32_t id)
 {
     int i;
     txlog_entry_t entry;
-    for(i = 0; i < txlog->header->txcount; i++) {
-        txlog_read_entry(log, i, &entry);
-        if (entry->transaction == id)
+    for(i = 0; i < txlog->header->tx_count; i++) {
+        txlog_read_entry(txlog, i, &entry);
+        if (entry.transaction == id)
             return false;
     }
     return true;
+}
+
+/* Find the most recent log entry */
+void txlog_last_entry(txlog_t* txlog, txlog_entry_t* out_entry){
+    txlog_read_entry(txlog, txlog->header->tx_count - 1,out_entry);
+}
+
+/* Find the last entry for a given transaction id */
+bool txlog_last_tx(txlog_t* txlog, txlog_entry_t* entry, uint32_t tid){
+    int i;
+    txlog_entry_t entry_temp;
+    for (i = txlog->header->tx_count-1; i>=0 ; i--){
+        txlog_read_entry(txlog,i,&entry_temp);
+        if(entry_temp.transaction == tid){
+            /* Save found entry */
+            memcpy(entry,&entry_temp,sizeof(txlog_entry_t));
+            return true;
+        }
+    }
+    return false;
 }
 
 /* initializes a transaction log entry struct */

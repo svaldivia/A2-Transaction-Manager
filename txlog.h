@@ -55,13 +55,12 @@ bool txlog_free_id(txlog_t* txlog, uint32_t id);
 
 void txlog_read_entry(txlog_t* txlog, uint32_t idx, txlog_entry_t* out_entry);
 
-/** returns the most recent log entry */
+/* returns the most recent log entry */
 void txlog_last_entry(txlog_t* txlog, txlog_entry_t* out_entry);
 
-/** find the last entry for a given transaction id */
-void txlog_last_tx(txlog_t* txlog, txlog_entry_t*, uint32_t tid);
+/* Find the last entry for a given transaction id */
+bool txlog_last_tx(txlog_t* txlog, txlog_entry_t*, uint32_t tid);
 
 void txentry_init(txlog_entry_t* entry, logEntryType type, uint32_t tid, vclock_t* vclock);
 void txentry_print(txlog_entry_t* entry);
-
 #endif
