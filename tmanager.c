@@ -421,17 +421,20 @@ bool joinTransaction(transaction_t* transaction,struct sockaddr_in address){
 void restoreTransactions(){
     int i;
     int j;
+    int count = txmanager.txlog->header->tx_count;
     txlog_entry_t entry;   
     txlog_entry_t entry_2;
     bool transaction_completed = false;
 
-    for (i = 0; i < txmanager.txlog->header->tx_count; i++){
+    printf("Recovering...\n");
+    for (i = 0; i < count; i++){
         /* Look for begin entry*/
+        printf("%d...",i);
         txlog_read_entry(txmanager.txlog,i,&entry);
         if(entry.type == LOG_BEGIN){
             /* Look for commit or abort */
             transaction_completed = false;
-            for(j = i; j < txmanager.txlog->header->tx_count; j++){ 
+            for(j = i; j < count; j++){ 
                 txlog_read_entry(txmanager.txlog,j,&entry_2);
                 /*Check tid + if commit or abort*/
                 if(entry.transaction == entry_2.transaction && (entry_2.type == LOG_ABORT || entry_2.type == LOG_COMMIT)){
@@ -443,18 +446,20 @@ void restoreTransactions(){
                 /* Append abort to transaction*/
                 txlog_entry_t abort_entry;
                 txentry_init(&abort_entry, LOG_ABORT, entry.transaction, txmanager.vclock);
-                txlog_append(txmanager.txlog, &entry);
+                txlog_append(txmanager.txlog, &abort_entry);
 
                 /* Add to local transactions */
 
             }
         }
     }
+    printf("end of restore\n");
 }
 
 /* Check log for transaction */
 void checkTransactionLog(uint32_t tid, struct sockaddr_in* recv_addr){
-    
+    printf("Checking transaction %d\n",tid);
+
     txlog_entry_t entry;
     if (!txlog_last_tx(txmanager.txlog, &entry, tid)) {
         printf("Unknown transacion id %d\n", tid);
@@ -479,6 +484,6 @@ void checkTransactionLog(uint32_t tid, struct sockaddr_in* recv_addr){
             printf("Transaction %d is not commited/aborted!\n", entry.transaction);
             break;
     }
-
+   printf("Transaction Checked\n"); 
 }
 
