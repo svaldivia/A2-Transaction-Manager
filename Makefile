@@ -3,10 +3,10 @@ all: tmanager tworker cmd dumpObject txlog_dump
 CLIBS=-pthread
 CC=gcc
 CPPFLAGS=
-CFLAGS=-g -Werror-implicit-function-declaration -pedantic -std=c99
+CFLAGS=-g -Werror-implicit-function-declaration -pedantic -std=gnu99
 
 tworker: tworker.h msg.c tworker.c server.c common.c tx_worker_thread.c shitviz.c txlog.c objstore.c
-	$(CC) $(CFLAGS) -o tworker msg.c tworker.c server.c common.c tx_worker_thread.c shitviz.c txlog.c objstore.c
+	$(CC) $(CFLAGS) $(CLIBS) -o tworker msg.c tworker.c server.c common.c tx_worker_thread.c shitviz.c txlog.c objstore.c
 
 tmanager: tmanager.c msg.c common.c server.c shitviz.c txlog.c
 	$(CC) $(CFLAGS) -o tmanager tmanager.c common.c server.c msg.c shitviz.c txlog.c
