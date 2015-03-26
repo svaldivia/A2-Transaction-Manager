@@ -83,6 +83,7 @@ int main(int argc, char ** argv)
                 txlog_entry_t entry;
                 if (!txlog_last_tx(txmanager.txlog, &entry, msg.tid)) {
                     printf("ASK: Unknown transacion id %d\n", msg.tid);
+                    shitviz_append(txmanager.port, "Unknown transaction array", txmanager.vclock);
                     break;
                 }
 
@@ -108,17 +109,32 @@ int main(int argc, char ** argv)
             }
 
             case BEGINTX: {
-                printf("Begining a transaction: %d \n",msg.tid);
-                if(addTransaction(msg.tid,&recv_addr)){
-                    /* log prepared */
-                    shitviz_append(txmanager.port, "BEGINTX", txmanager.vclock);
+                if(txlog_free_id(txmanager.txlog,msg.tid)){
+                    if(addTransaction(msg.tid,&recv_addr)){
+                        printf("Begining a transaction: %d \n",msg.tid);
+                        /* log prepared */
+                        shitviz_append(txmanager.port, "BEGINTX", txmanager.vclock);
 
-                    txlog_entry_t entry;
-                    txentry_init(&entry, LOG_BEGIN, msg.tid, txmanager.vclock);
-                    txlog_append(txmanager.txlog, &entry);
-                } else {
-                    /* log prepared */
-                    shitviz_append(txmanager.port, "BEGINTX Failed", txmanager.vclock);
+                        txlog_entry_t entry;
+                        txentry_init(&entry, LOG_BEGIN, msg.tid, txmanager.vclock);
+                        txlog_append(txmanager.txlog, &entry);
+                    } else {
+                        printf("Transaction already exits\n"); 
+                        /* log prepared */
+                        shitviz_append(txmanager.port, "BEGINTX Failed", txmanager.vclock);
+                    }
+                } else{
+                    printf("Transaction already exits\n"); 
+                    /* Create error message*/
+                    message_t msg;
+                    message_init(&msg,txmanager.vclock);
+                    msg.type = TX_ERROR;
+                    msg.value = 1;
+                    strcpy(msg.strdata,"TID already exists");
+
+                    server_send(txmanager.server,&recv_addr, &msg);
+                    
+                    shitviz_append(txmanager.port, "TID Exists", txmanager.vclock);
                 }
                 break;
             }
@@ -263,9 +279,13 @@ int main(int argc, char ** argv)
 
                     /* send error */
                     server_send(txmanager.server,&recv_addr, &msg);
+                    
+                    shitviz_append(txmanager.port, "JOINTX Failed", txmanager.vclock);
                 } else if(joinTransaction(transaction,recv_addr)){
                     /* Worker joined */
                     printWorkers(transaction);
+
+                    shitviz_append(txmanager.port, "Worker joined", txmanager.vclock);
                 } else {
                     /*Transaction could not be joined*/
                     message_t msg;
@@ -276,6 +296,7 @@ int main(int argc, char ** argv)
 
                     /* send error */
                     server_send(txmanager.server,&recv_addr, &msg);
+                    shitviz_append(txmanager.port, "JOINTX failed", txmanager.vclock);
                 }
                 break;
             }
@@ -283,15 +304,18 @@ int main(int argc, char ** argv)
             case ABORT_CRASH:
                 txmanager.abort_crash = true;
                 printf("Set abort crash flag\n");
+                shitviz_append(txmanager.port, "Set abort crash flag", txmanager.vclock);
                 break;
 
             case COMMIT_CRASH:
                 txmanager.commit_crash = true;
                 printf("Set commit crash flag\n");
+                shitviz_append(txmanager.port, "Commit crash flag", txmanager.vclock);
                 break;
 
             default:
                 printf("Unknown command %d\n", msg.type);
+                shitviz_append(txmanager.port, "Unknown command", txmanager.vclock);
                 break;
         }
     }
@@ -301,7 +325,7 @@ int main(int argc, char ** argv)
 
 /* Add transaction to array */
 transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr)
-{
+{ 
     int i;
     for (i = 0; i < MAX_TRANSACTIONS; i++){
         transaction_t* transaction = &txmanager.transactions[i];
@@ -316,6 +340,7 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr)
 
             /* send error */
             server_send(txmanager.server,dest_addr, &msg);
+            shitviz_append(txmanager.port, "TID already exists", txmanager.vclock);
             return NULL;
         } else if(transaction->state == COMMIT_STATE || transaction->state == ABORT_STATE || transaction->tid == 0) {
             
@@ -331,6 +356,8 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr)
             
             printf("Transaction:: tid: %d state: %d\nnode:%d was added successfully\n",transaction->tid, transaction->state,transaction->nodes[0].nid);
             printTransactions();
+
+            shitviz_append(txmanager.port, "Transaction joined", txmanager.vclock);
             return transaction;
         }
     }
