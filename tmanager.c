@@ -66,6 +66,8 @@ int main(int argc, char ** argv)
 
     while(1) 
     {
+
+        printf("HERE----Loop\n");
         bytes = server_recv(txmanager.server, &msg, &recv_addr);
         if (bytes <= 0)
             continue;
@@ -75,6 +77,8 @@ int main(int argc, char ** argv)
         /* Increment clock */
         vclock_increment(txmanager.port,txmanager.vclock);
         
+        printf("HERE----Clocks\n");
+
         /* Handle message */
         switch(msg.type) 
         {
@@ -129,6 +133,7 @@ int main(int argc, char ** argv)
                     /* Check transaction log for status */
                     printf("Transaction was not found\n");
                     checkTransactionLog(msg.tid, &recv_addr);
+                    printf("HERE----\n");
                 } if (transaction->state == PREPARE_STATE){
                     printf("Transaction is already in prepare state\n");
                     continue;
