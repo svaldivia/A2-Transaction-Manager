@@ -18,9 +18,19 @@ void tx_manager_spawn(worker_state_t* wstate, const char* tm_host, uint32_t tm_p
     wstate->do_commit = true;
     strcpy(wstate->tm_host, tm_host);
 
+    /* TODO: restore listening port */
+    int listen_port = 0;
+    if (wstate->uncertain) 
+        listen_port = wstate->txlog->header->tm_listen_port;
+
     /* Set up server :: TMananger*/
-    server_alloc(&wstate->server, 0, 10);
+    server_alloc(&wstate->server, listen_port, 10);
     server_listen(wstate->server);
+
+    /* store ports & TM address in transaction log */
+    wstate->txlog->header->tm_listen_port = wstate->server->port;
+    wstate->txlog->header->tm_port = tm_port;
+    strcpy(wstate->txlog->header->tm_host, tm_host);
 
     pthread_t thread;
     pthread_create(&thread, NULL, tx_worker_thread, (void*)wstate); 

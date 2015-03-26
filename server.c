@@ -60,9 +60,10 @@ int server_listen(server_t* server){
     }
    
     /* Check if system selected port */
-    if(server->port == 0 ){
+    if(server->port == 0){
         socklen_t len_serverAddr = sizeof(serverAddr);
-        server->port = getsockname(sockfd,(struct sockaddr *)&serverAddr, &len_serverAddr); 
+        getsockname(sockfd, (struct sockaddr*)&serverAddr, &len_serverAddr); 
+        server->port = ntohs(serverAddr.sin_port);
     }
 
     /* Add socket file descriptor to server struct */

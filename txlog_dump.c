@@ -23,8 +23,5 @@ int main(int argc, char* argv[])
         txentry_print(&entry);
     }
 
-    entry.type = LOG_BEGIN;
-    txlog_append(log, &entry);
-
     return 0;
 }

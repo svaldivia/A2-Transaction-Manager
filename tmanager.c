@@ -45,7 +45,6 @@ int main(int argc, char ** argv)
     sprintf(txlogName, "txlog_%d.data", txmanager.port);
     txlog_open(&txmanager.txlog, txlogName); 
     
-        
     /* Set up server */
     server_alloc(&txmanager.server, port, 10);
     server_listen(txmanager.server);
@@ -81,6 +80,33 @@ int main(int argc, char ** argv)
         /* Handle message */
         switch(msg.type) 
         {
+            case ASK: {
+                txlog_entry_t entry;
+                if (!txlog_last_tx(txmanager.txlog, &entry, msg.tid)) {
+                    printf("ASK: Unknown transacion id %d\n", msg.tid);
+                    break;
+                }
+
+                message_t ask_msg;
+                message_init(&ask_msg, txmanager.vclock);
+                switch(entry.type) {
+                    case LOG_COMMIT:
+                        ask_msg.value = COMMIT;
+                        server_send(txmanager.server, &recv_addr, &ask_msg);
+                        shitviz_append(txmanager.port, "ASK: Commit", txmanager.vclock);
+                        break;
+                    case LOG_ABORT:
+                        ask_msg.value = ABORT;
+                        server_send(txmanager.server, &recv_addr, &ask_msg);
+                        shitviz_append(txmanager.port, "ASK: Abort", txmanager.vclock);
+                        break;
+                    default:
+                        printf("Transaction %d is not commited/aborted!\n", entry.transaction);
+                        break;
+                }
+                break;
+            }
+
             case BEGINTX: {
                 printf("Begining a transaction: %d \n",msg.tid);
                 if(addTransaction(msg.tid,&recv_addr)){
@@ -94,13 +120,13 @@ int main(int argc, char ** argv)
                     /* log prepared */
                     shitviz_append(txmanager.port, "BEGINTX Failed", txmanager.vclock);
                 }
-                
                 break;
             }
             case COMMIT: {
                 printf("Commit tid:%d request\n",msg.tid);
                 transaction_t* transaction = findTransaction(msg.tid);
                 if (transaction == NULL){
+                    /* TODO: Check transaction log for status */
                     printf("Transaction was not found\n");
                 } if (transaction->state == PREPARE_STATE){
                     printf("Transaction is already in prepare state\n");
@@ -124,10 +150,23 @@ int main(int argc, char ** argv)
                 
                 transaction_t* transaction = findTransaction(msg.tid);
                 if (transaction == NULL){
+                    /* TODO: Check transaction log for status */
                     printf("Transaction was not found");
                 } else {
                     /* Change transaction state */
                     transaction->state = ABORT_STATE;
+
+                    /* Log abort */
+                    shitviz_append(txmanager.port, "ABORT", txmanager.vclock);
+
+                    txlog_entry_t entry;
+                    txentry_init(&entry, LOG_ABORT, msg.tid, txmanager.vclock);
+                    txlog_append(txmanager.txlog, &entry);
+
+                    if (txmanager.abort_crash) {
+                        printf("Abort crash\n");
+                        exit(1);
+                    }
 
                     /* Abort transaction*/
                     message_t msg;
@@ -137,12 +176,6 @@ int main(int argc, char ** argv)
                     /* Send to workers in transaction */ 
                     sendToAllWorkers(transaction, &msg);
 
-                    /* Log abort */
-                    shitviz_append(txmanager.port, "ABORT", txmanager.vclock);
-
-                    txlog_entry_t entry;
-                    txentry_init(&entry, LOG_ABORT, msg.tid, txmanager.vclock);
-                    txlog_append(txmanager.txlog, &entry);
                 }
                 break;
             }
@@ -176,13 +209,6 @@ int main(int argc, char ** argv)
                     /* Commit transaction*/
                     transaction->state = COMMIT_STATE;
 
-                    /* Create message */
-                    message_t msg;
-                    message_init(&msg,txmanager.vclock);
-                    msg.type = COMMIT;
-                
-                    /* Send to workers in transaction */ 
-                    sendToAllWorkers(transaction, &msg);
 
                     /* Log abort */
                     shitviz_append(txmanager.port, "COMMIT", txmanager.vclock);
@@ -191,11 +217,25 @@ int main(int argc, char ** argv)
                     txentry_init(&entry, LOG_COMMIT, msg.tid, txmanager.vclock);
                     entry.transaction = transaction->tid;
                     txlog_append(txmanager.txlog, &entry);
+
+                    /* commit crash */
+                    if (txmanager.commit_crash) {
+                        printf("Commit crash\n");
+                        exit(1);
+                    }
+
+                    /* Create message */
+                    message_t msg;
+                    message_init(&msg,txmanager.vclock);
+                    msg.type = COMMIT;
+                
+                    /* Send to workers in transaction */ 
+                    sendToAllWorkers(transaction, &msg);
                 }
 
                 break;
             }
-            case JOINTX:{
+            case JOINTX: {
                 printf("Node %d wants to join the party at tid: %d\n",ntohs(recv_addr.sin_port),msg.tid);
                 /* Get Transaction */
                 transaction_t* transaction = findTransaction(msg.tid);
@@ -204,7 +244,7 @@ int main(int argc, char ** argv)
                 } else if(transaction->state == PREPARE_STATE || transaction->state == COMMIT_STATE || transaction->state == ABORT_STATE){
                     /*Transaction could not be joined*/
                     message_t msg;
-                    message_init(&msg,txmanager.vclock);
+                    message_init(&msg, txmanager.vclock);
                     msg.type = TX_ERROR;
                     msg.value = 1;
                     strcpy(msg.strdata, "Transaction was already completed or is preparing to commit");
@@ -227,6 +267,22 @@ int main(int argc, char ** argv)
                 }
                 break;
             }
+
+            case DELAY_RESPONSE:
+                txmanager.delay = msg.delay;
+                printf("Set response delay to %d seconds\n", txmanager.delay);
+                break;
+
+            case ABORT_CRASH:
+                txmanager.abort_crash = true;
+                printf("Set abort crash flag\n");
+                break;
+
+            case COMMIT_CRASH:
+                txmanager.commit_crash = true;
+                printf("Set commit crash flag\n");
+                break;
+
             default:
                 printf("Unknown command %d\n", msg.type);
                 break;

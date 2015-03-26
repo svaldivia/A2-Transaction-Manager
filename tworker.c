@@ -69,12 +69,52 @@ int main(int argc, char ** argv)
 
     shitviz_append(port, "Started worker", wstate.vclock);
 
-    /* 
-    if we're in PREPARED (uncertain)
-    wstate.uncertain = true;
-    wstate.is_active = true;
-    tx_manager_spawn(&wstate, (const char*)&msg.strdata, msg.port, msg.tid);
-    */
+    txlog_entry_t last_entry;
+    txlog_last_entry(wstate.txlog, &last_entry);
+    switch(last_entry.type) 
+    {
+        case LOG_PREPARED: {
+            printf("Last transaction log was PREPARED, starting in uncertain state.\n");
+            wstate.uncertain = true;
+            wstate.is_active = true;
+
+            tx_manager_spawn(&wstate, 
+                wstate.txlog->header->tm_host, 
+                wstate.txlog->header->tm_port, 
+                last_entry.transaction);
+            break;
+        }
+        case LOG_UPDATE: {
+            printf("Last transaction log was UPDATE, rolling back changes.\n");
+            txlog_entry_t entry;
+            int idx;
+            for(idx = wstate.txlog->header->tx_count; idx >= 0; idx--) {
+                txlog_read_entry(wstate.txlog, idx, &entry);
+                /* break when we reach commit or abort */
+                if (entry.type == LOG_UPDATE) {
+                    objstore_set_a(wstate.store, entry.old_a);
+                    objstore_set_b(wstate.store, entry.old_b);
+                    objstore_set_id(wstate.store, entry.old_id);
+                    objstore_sync(wstate.store, entry.vclock);
+
+                    printf("> Rollback A->%d, B->%d, ID->'%s'\n",
+                        objstore_get_a(wstate.store),
+                        objstore_get_b(wstate.store),
+                        objstore_get_id(wstate.store));
+                }
+                else {
+                    printf("Rollback completed\n");
+                    /* Log abort */
+                    txlog_entry_t abort_log;
+                    txentry_init(&abort_log, LOG_ABORT, entry.transaction, entry.vclock);
+                    txlog_append(wstate.txlog, &abort_log);
+                    break;
+                }
+            }
+            break;
+        }
+        default: break;
+    }
 
     /* Set up server :: Command */
     server_t* server_cmd = NULL;

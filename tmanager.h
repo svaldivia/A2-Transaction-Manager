@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "common.h"
 #include "server.h"
@@ -41,6 +42,11 @@ struct txmanager_t
     vclock_t      vclock[MAX_NODES];
     transaction_t transactions[MAX_TRANSACTIONS];
     uint32_t      port;
+
+    /* test settings */
+    uint32_t      delay;
+    bool          commit_crash;
+    bool          abort_crash;
 };
 
 typedef struct txmanager_t txmanager_t;
