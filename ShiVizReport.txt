@@ -1,0 +1,35 @@
+Test 1
+----------------------------------------
+File: ShiVizLog.dat1
+
+Commands:
+----------------------------------------
+1. begin a transaction with node N1
+2. join a node N2 to the transaction
+3. updated a in N1
+4. updated b in N2
+5. told N2 to vote abort
+6. N1 sent a commit
+
+Result:
+----------------------------------------
+Transaction was aborted
+
+Test 3
+----------------------------------------
+
+1. begin a transaction with node N1
+2. join a node N2 to the transaction
+3. updated a in N1
+4. updated b in N2
+5. Told manager to crash after logging commit but before replying with commit
+6. Waited for a little while and restarted the manager
+7. N1 and N2 asked for an update on the transaction
+
+Result
+----------------------------------------
+N1 and N2 commited
+
+
+
+

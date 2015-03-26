@@ -38,10 +38,10 @@ Email:      dat11jhe@student.lu.se
 
 
 STUDENT  2
-Name :
-St. No:
-Unix Id :
-Email:
+Name : Sebastian Valdivia
+St. No: 47373113
+Unix Id : b7e8
+Email: s.valdivia.ubc@gmail.com
 
 
 ACKNOWLEDGMENTS :
