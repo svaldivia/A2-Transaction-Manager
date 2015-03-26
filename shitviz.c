@@ -11,7 +11,7 @@ void shitviz_append(uint32_t id, char* msg, vclock_t* vclock)
 {
     if (!_SHITVIZ_FD) {
         char name_buffer[128];
-        sprintf(name_buffer, "Shiviz_%d.log", id);
+        sprintf(name_buffer, "ShiViz_%d.dat", id);
         _SHITVIZ_FD = fopen(name_buffer, "w");
 
         /* write shitviz header */

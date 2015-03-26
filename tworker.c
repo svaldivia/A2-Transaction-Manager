@@ -48,11 +48,11 @@ int main(int argc, char ** argv)
     wstate.node_id = port;
 
     /* Open object store */
-    sprintf(storeName, "store_%d.data", wstate.node_id);
+    sprintf(storeName, "WorkerData_%d.data", wstate.node_id);
     objstore_init(&wstate.store, storeName);
     
     /* Check or Open log*/
-    sprintf(txlogName, "txlog_%d.data", wstate.node_id);
+    sprintf(txlogName, "WorkerLog_%d.log", wstate.node_id);
     txlog_open(&wstate.txlog, txlogName); 
 
     /* Get the vector clock + set local clock */
@@ -86,31 +86,7 @@ int main(int argc, char ** argv)
         }
         case LOG_UPDATE: {
             printf("Last transaction log was UPDATE, rolling back changes.\n");
-            txlog_entry_t entry;
-            int idx;
-            for(idx = wstate.txlog->header->tx_count; idx >= 0; idx--) {
-                txlog_read_entry(wstate.txlog, idx, &entry);
-                /* break when we reach commit or abort */
-                if (entry.type == LOG_UPDATE) {
-                    objstore_set_a(wstate.store, entry.old_a);
-                    objstore_set_b(wstate.store, entry.old_b);
-                    objstore_set_id(wstate.store, entry.old_id);
-                    objstore_sync(wstate.store, entry.vclock);
-
-                    printf("> Rollback A->%d, B->%d, ID->'%s'\n",
-                        objstore_get_a(wstate.store),
-                        objstore_get_b(wstate.store),
-                        objstore_get_id(wstate.store));
-                }
-                else {
-                    printf("Rollback completed\n");
-                    /* Log abort */
-                    txlog_entry_t abort_log;
-                    txentry_init(&abort_log, LOG_ABORT, entry.transaction, entry.vclock);
-                    txlog_append(wstate.txlog, &abort_log);
-                    break;
-                }
-            }
+            update_rollback(&wstate);
             break;
         }
         default: break;
@@ -289,16 +265,6 @@ int main(int argc, char ** argv)
                 
                 /* Send commit request to tmanager */
                 server_send_to(wstate.server, wstate.tm_host, wstate.tm_port, &commit);
-
-                /* Wait for prepare to commit message */
-                /* Create log entry: Prepared */
-               
-                /* Send Prepared message to tmanager*/
-
-                /* ------Phase 2----*/
-                /* Wait for committed message from tmanager */
-
-                /* When committed received, log to file: committed*/
                 break;
             }
 
@@ -323,8 +289,7 @@ int main(int argc, char ** argv)
                     break;
                 }
 
-                /* log abort */
-                /* rollback */
+                update_rollback(&wstate);
 
                 wstate.do_commit = false;
                 wstate.do_abort = true;
@@ -365,4 +330,37 @@ int main(int argc, char ** argv)
     }
 
     return 0;
+}
+
+void update_rollback(worker_state_t* wstate) 
+{
+    int idx;
+    txlog_entry_t entry;
+    printf("Performing update rollback...\n");
+    for(idx = wstate->txlog->header->tx_count - 1; idx >= 0; idx--) {
+        txlog_read_entry(wstate->txlog, idx, &entry);
+
+        /* for every update we encounter, roll back values */
+        if (entry.type == LOG_UPDATE) {
+            objstore_set_a(wstate->store,  entry.old_a);
+            objstore_set_b(wstate->store,  entry.old_b);
+            objstore_set_id(wstate->store, entry.old_id);
+            objstore_sync(wstate->store,   entry.vclock);
+
+            printf("> Rollback A->%d, B->%d, ID->'%s'\n",
+                objstore_get_a(wstate->store),
+                objstore_get_b(wstate->store),
+                objstore_get_id(wstate->store));
+        }
+        else {
+            /* break when we reach commit, abort or begin */
+            printf("Rollback completed\n");
+
+            /* then log an abort */
+            txlog_entry_t abort_log;
+            txentry_init(&abort_log, LOG_ABORT, entry.transaction, entry.vclock);
+            txlog_append(wstate->txlog, &abort_log);
+            break;
+        }
+    }
 }

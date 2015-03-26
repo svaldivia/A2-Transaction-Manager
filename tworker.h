@@ -11,6 +11,8 @@
 #include "shitviz.h"
 #include "objstore.h"
 
+/* represents the state of the local worker.
+ * this should definately be thread safe but yeah. */
 struct worker_state_t 
 {
     int         node_id;
@@ -24,16 +26,17 @@ struct worker_state_t
 
     /* wat do we need */
     int  transaction;
+    int  delay;
     bool is_active;
     bool do_commit;
     bool do_abort;
-
     bool uncertain;
 };
 
 typedef struct worker_state_t worker_state_t;
 
-int get_node_id();
+/** common function for rolling back updates on aborts */
+void update_rollback(worker_state_t*);
 
 void tx_manager_spawn(worker_state_t*, const char*, uint32_t, uint32_t tid);
 void* tx_worker_thread(void* params);

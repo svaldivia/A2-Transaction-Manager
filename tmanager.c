@@ -42,7 +42,7 @@ int main(int argc, char ** argv)
     txmanager.port = port;
 
     /* Check or Open log*/
-    sprintf(txlogName, "txlog_%d.data", txmanager.port);
+    sprintf(txlogName, "TmanagerLog_%d.log", txmanager.port);
     txlog_open(&txmanager.txlog, txlogName); 
     
     /* Set up server */

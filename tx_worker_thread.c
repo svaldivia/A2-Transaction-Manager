@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "msg.h"
 #include "server.h"
@@ -88,11 +89,8 @@ void tx_worker_uncertain(worker_state_t* wstate)
                 /* log abort */
                 shitviz_append(wstate->node_id, "Abort", wstate->vclock);
 
-                txlog_entry_t entry;
-                txentry_init(&entry, LOG_ABORT, wstate->transaction, wstate->vclock);
-                txlog_append(wstate->txlog, &entry);
-
-                /* TODO: fuuck we need to roll back */
+                /* roll back */
+                update_rollback(wstate);
 
                 wstate->uncertain = false;
                 return;
@@ -136,6 +134,12 @@ void* tx_worker_thread(void* params)
         if (bytes <= 0)
             continue;
 
+        /* delay function */
+        if (wstate->delay != 0 && wstate->delay != -1000) {
+            int sleep_time = abs(wstate->delay);
+            sleep(sleep_time);
+        }
+
         /* update vector clock */
         vclock_update(wstate->node_id, wstate->vclock, msg.vclock);
         vclock_increment(wstate->node_id, wstate->vclock);
@@ -152,17 +156,23 @@ void* tx_worker_thread(void* params)
                 if (wstate->do_commit) {
                     vote.type = PREPARED;
                     shitviz_append(wstate->node_id, "Voting COMMIT", wstate->vclock);
-                    server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &vote);
 
                     /* log prepared */
                     txlog_entry_t entry;
                     txentry_init(&entry, LOG_PREPARED, wstate->transaction, wstate->vclock);
                     txlog_append(wstate->txlog, &entry);
 
+                    /* negative delay crash */
+                    if (wstate->delay < 0) exit(1);
+
+                    server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &vote);
+
                     /* we're uncertain! force wait for a reply */
                     wstate->uncertain = true;
                     tx_worker_uncertain(wstate);
 
+                    /* this transaction is finished as soon as we get a reply */
+                    running = false;
                     break;
                 }
 
@@ -170,16 +180,22 @@ void* tx_worker_thread(void* params)
                 if (wstate->do_abort) {
                     vote.type = VOTE_ABORT;
                     shitviz_append(wstate->node_id, "Voting ABORT", wstate->vclock);
-                    server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &vote);
 
                     /* reset state */
                     wstate->do_abort = false;
                     wstate->do_commit = true;
 
+                    /* negative delay crash */
+                    if (wstate->delay < 0) exit(1);
+
+                    server_send_to(wstate->server, wstate->tm_host, wstate->tm_port, &vote);
+
                     /* we're uncertain! force wait for a reply */
                     wstate->uncertain = true;
                     tx_worker_uncertain(wstate);
 
+                    /* this transaction is finished as soon as we get a reply */
+                    running = false;
                     break;
                 }
 

@@ -118,6 +118,7 @@ void txlog_append(txlog_t* log, txlog_entry_t* entry)
     off_t offset = sizeof(txlog_head_t) + log->header->tx_count * sizeof(txlog_entry_t);
     lseek(log->file, offset, SEEK_SET);
     write(log->file, entry, sizeof(txlog_entry_t));
+    fsync(log->file);
 
     /* increment number of transactions */
     log->header->tx_count++;
