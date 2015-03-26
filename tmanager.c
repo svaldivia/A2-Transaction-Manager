@@ -58,9 +58,7 @@ int main(int argc, char ** argv)
     shitviz_append(port, "Started manager", txmanager.vclock);
    
     /* Check for rollback */ 
-    // Restore transactions
-
-    // Check last line to know current status
+    restoreTransactions();
 
     struct sockaddr_in recv_addr;
     message_t msg;
@@ -128,8 +126,9 @@ int main(int argc, char ** argv)
                 printf("Commit tid:%d request\n",msg.tid);
                 transaction_t* transaction = findTransaction(msg.tid);
                 if (transaction == NULL){
-                    /* TODO: Check transaction log for status */
+                    /* Check transaction log for status */
                     printf("Transaction was not found\n");
+                    checkTransactionLog(msg.tid, &recv_addr);
                 } if (transaction->state == PREPARE_STATE){
                     printf("Transaction is already in prepare state\n");
                     continue;
@@ -152,8 +151,9 @@ int main(int argc, char ** argv)
                 
                 transaction_t* transaction = findTransaction(msg.tid);
                 if (transaction == NULL){
-                    /* TODO: Check transaction log for status */
+                    /* Check transaction log for status */
                     printf("Transaction was not found");
+                    checkTransactionLog(msg.tid,&recv_addr);
                 } else {
                     /* Change transaction state */
                     transaction->state = ABORT_STATE;
@@ -187,6 +187,12 @@ int main(int argc, char ** argv)
 
                 /* Get Transaction */
                 transaction_t* transaction = findTransaction(msg.tid);
+                /* Check if transaction exists locally */
+                if (transaction == NULL){
+                    /* Search transaction result in log */
+                    checkTransactionLog(msg.tid,&recv_addr);
+                }
+                
                 /* Check if transaction aborted */
                 if(transaction->state == ABORT_STATE){ 
                     message_t msg;
@@ -212,7 +218,7 @@ int main(int argc, char ** argv)
                     transaction->state = COMMIT_STATE;
 
 
-                    /* Log abort */
+                    /* Log commit */
                     shitviz_append(txmanager.port, "COMMIT", txmanager.vclock);
 
                     txlog_entry_t entry;
@@ -242,7 +248,10 @@ int main(int argc, char ** argv)
                 /* Get Transaction */
                 transaction_t* transaction = findTransaction(msg.tid);
                 if(transaction == NULL){
-                    printf("Transaction was not found");
+                    printf("Transaction was not found\n");
+                    
+                    /* Check transaction log */
+                    checkTransactionLog(msg.tid,&recv_addr);
                 } else if(transaction->state == PREPARE_STATE || transaction->state == COMMIT_STATE || transaction->state == ABORT_STATE){
                     /*Transaction could not be joined*/
                     message_t msg;
@@ -443,4 +452,33 @@ void restoreTransactions(){
     }
 }
 
+/* Check log for transaction */
+void checkTransactionLog(uint32_t tid, struct sockaddr_in* recv_addr){
+    
+    txlog_entry_t entry;
+    if (!txlog_last_tx(txmanager.txlog, &entry, tid)) {
+        printf("Unknown transacion id %d\n", tid);
+        return;
+    }
+
+    message_t result_msg;
+    message_init(&result_msg, txmanager.vclock);
+    result_msg.tid = entry.transaction;
+    switch(entry.type) {
+        case LOG_COMMIT:
+            result_msg.type = COMMIT;
+            server_send(txmanager.server, recv_addr, &result_msg);
+            shitviz_append(txmanager.port, "Commit", txmanager.vclock);
+            break;
+        case LOG_ABORT:
+            result_msg.type = ABORT;
+            server_send(txmanager.server, recv_addr, &result_msg);
+            shitviz_append(txmanager.port, "Abort", txmanager.vclock);
+            break;
+        default:
+            printf("Transaction %d is not commited/aborted!\n", entry.transaction);
+            break;
+    }
+
+}
 

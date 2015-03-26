@@ -62,4 +62,8 @@ void printTransactions ();
 bool joinTransaction(transaction_t* transaction, struct sockaddr_in address);
 /* Print workers*/
 void printWorkers(transaction_t* transaction);
+/* Check log for transaction */
+void checkTransactionLog(uint32_t tid, struct sockaddr_in* address);
+/* Restore transactions from log file */
+void restoreTransactions();
 #endif
