@@ -148,6 +148,8 @@ int main(int argc, char ** argv)
                     checkTransactionLog(msg.tid, &recv_addr);
                 } else if (transaction->state == PREPARE_STATE){
                     printf("Transaction is already in prepare state\n");
+                     
+                    shitviz_append(txmanager.port, "Transaction in prepare state", txmanager.vclock);
                     continue;
                 } else {
                     /* Change state of transaction */
@@ -157,6 +159,8 @@ int main(int argc, char ** argv)
                     message_t msgCommit;
                     message_init(&msgCommit,txmanager.vclock);
                     msgCommit.type = PREPARE_TO_COMMIT;
+
+                    shitviz_append(txmanager.port, "Prepare to commit", txmanager.vclock);
                     
                     /* Send to workers in transaction */ 
                     sendToAllWorkers(transaction, &msgCommit);
@@ -220,6 +224,7 @@ int main(int argc, char ** argv)
 
                     /* send error */
                     server_send(txmanager.server,&recv_addr, &msg);
+                    shitviz_append(txmanager.port, "Transaction already aborted", txmanager.vclock);
                     continue;
                 }
                 
@@ -256,6 +261,8 @@ int main(int argc, char ** argv)
                 
                     /* Send to workers in transaction */ 
                     sendToAllWorkers(transaction, &msg);
+                } else {
+                    shitviz_append(txmanager.port, "Worker sent prepared", txmanager.vclock);
                 }
 
                 break;
@@ -357,7 +364,6 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr)
             printf("Transaction:: tid: %d state: %d\nnode:%d was added successfully\n",transaction->tid, transaction->state,transaction->nodes[0].nid);
             printTransactions();
 
-            shitviz_append(txmanager.port, "Transaction joined", txmanager.vclock);
             return transaction;
         }
     }
@@ -372,6 +378,7 @@ transaction_t* addTransaction(uint32_t tid, struct sockaddr_in* dest_addr)
     strcpy(msg.strdata,"Transaction queue full");
     
     server_send(txmanager.server,dest_addr, &msg);
+    shitviz_append(txmanager.port, "Transaction is full", txmanager.vclock);
     return NULL;
 }
 
@@ -491,6 +498,7 @@ void checkTransactionLog(uint32_t tid, struct sockaddr_in* recv_addr){
     txlog_entry_t entry;
     if (!txlog_last_tx(txmanager.txlog, &entry, tid)) {
         printf("Unknown transacion id %d\n", tid);
+        shitviz_append(txmanager.port, "Unknown Transaction", txmanager.vclock);
         return;
     }
 
@@ -510,6 +518,7 @@ void checkTransactionLog(uint32_t tid, struct sockaddr_in* recv_addr){
             break;
         default:
             printf("Transaction %d is not commited/aborted!\n", entry.transaction);
+            shitviz_append(txmanager.port, "Transaction is not commited/aborted", txmanager.vclock);
             break;
     }
    printf("Transaction Checked\n"); 
