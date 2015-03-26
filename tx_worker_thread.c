@@ -97,14 +97,13 @@ void tx_worker_uncertain(worker_state_t* wstate)
             }
 
             case PREPARE_TO_COMMIT: 
-                printf("Unexpected PREPARE (uncertain)\n");
+                shitviz_append(wstate->node_id, "Unexpected PREPARE in uncertain state", wstate->vclock);
                 break;
 
             default:
-                printf("Unexpected command (uncertain)\n"); 
+                shitviz_append(wstate->node_id, "Unknown command in uncertain state", wstate->vclock);
                 break;
         }
-
     }
 }
 
@@ -178,7 +177,7 @@ void* tx_worker_thread(void* params)
 
                 /* vote abort? */
                 if (wstate->do_abort) {
-                    vote.type = VOTE_ABORT;
+                    vote.type = ABORT;
                     shitviz_append(wstate->node_id, "Voting ABORT", wstate->vclock);
 
                     /* reset state */
@@ -199,7 +198,7 @@ void* tx_worker_thread(void* params)
                     break;
                 }
 
-                printf("Dunno what to do for PREPARE TO COMMIT!\n");
+                shitviz_append(wstate->node_id, "Dunno what to do for PREPARE :(", wstate->vclock);
                 break;
             }
 
@@ -214,16 +213,31 @@ void* tx_worker_thread(void* params)
                 break;
             }
 
-            case COMMIT:
-                printf("Unexpected COMMIT!\n");
-                break;
+            case COMMIT: {
+                /* log commit etc */
+                shitviz_append(wstate->node_id, "Commit", wstate->vclock);
 
-            case ABORT:
-                printf("Unexpected ABORT!\n");
+                txlog_entry_t entry;
+                txentry_init(&entry, LOG_COMMIT, wstate->transaction, wstate->vclock);
+                txlog_append(wstate->txlog, &entry);
+
+                running = false;
                 break;
+            }
+
+            case ABORT: {
+                /* log abort */
+                shitviz_append(wstate->node_id, "Abort", wstate->vclock);
+
+                /* roll back */
+                update_rollback(wstate);
+
+                running = false;
+                break;
+            }
 
             default:
-                printf("Unknown command %d\n", msg.type); 
+                shitviz_append(wstate->node_id, "Unknown command", wstate->vclock);
                 break;
         }
     }

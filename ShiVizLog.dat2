@@ -1,0 +1,46 @@
+(?<event>.*)\n(?<host>\S*) (?<clock>{.*})
+
+Started manager
+N13000 { "N13000": 1 }
+BEGINTX
+N13000 { "N13000": 2, "N13001": 2 }
+Worker joined
+N13000 { "N13000": 3, "N13001": 2, "N13002": 2 }
+Commit crash flag
+N13000 { "N13000": 4, "N13001": 4, "N13002": 2 }
+Prepare to commit
+N13000 { "N13000": 5, "N13001": 4, "N13002": 4 }
+Worker sent prepared
+N13000 { "N13000": 6, "N13001": 5, "N13002": 4 }
+COMMIT
+N13000 { "N13000": 7, "N13001": 5, "N13002": 5 }
+Started manager
+N13000 { "N13000": 8, "N13001": 5, "N13002": 5 }
+ASK: Commit
+N13000 { "N13000": 9, "N13001": 5, "N13002": 5 }
+ASK: Commit
+N13000 { "N13000": 10, "N13001": 5, "N13002": 5 }
+Started worker
+N13001 { "N13001": 1 }
+PASS: Begin transaction 1
+N13001 { "N13001": 2 }
+Set A = 1
+N13001 { "N13001": 3 }
+Passing COMMIT CRASH to manager
+N13001 { "N13001": 4 }
+Voting COMMIT
+N13001 { "N13001": 5, "N13000": 5 }
+Commit
+N13001 { "N13001": 6, "N13000": 8 }
+Started worker
+N13002 { "N13002": 1 }
+PASS: Join transaction 1
+N13002 { "N13002": 2 }
+Set B = 2
+N13002 { "N13002": 3 }
+Passing COMMIT to manager
+N13002 { "N13002": 4 }
+Voting COMMIT
+N13002 { "N13002": 5, "N13000": 5 }
+Commit
+N13002 { "N13002": 6, "N13000": 9 }

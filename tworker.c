@@ -63,6 +63,10 @@ int main(int argc, char ** argv)
         vclock_add(wstate.vclock, wstate.node_id); 
         objstore_sync(wstate.store, wstate.vclock);
     }
+    else {
+        /* recovered clock, increment it */
+        vclock_increment(wstate.node_id, wstate.vclock);
+    }
 
     /* dump the object store */
     objstore_dump(wstate.store);
@@ -135,7 +139,9 @@ int main(int argc, char ** argv)
                 txentry_init(&entry, LOG_BEGIN, wstate.transaction, wstate.vclock);
                 txlog_append(wstate.txlog, &entry);
                
-                //TODO: If the transaction ID is already used log it to shiviz 
+                char strbuff[64];
+                snprintf(strbuff, 64, "PASS: Begin transaction %d", msg.tid);
+                shitviz_append(wstate.node_id, strbuff, wstate.vclock);
                 break;
             }
 
@@ -159,6 +165,9 @@ int main(int argc, char ** argv)
                 txentry_init(&entry, LOG_BEGIN, wstate.transaction, wstate.vclock);
                 txlog_append(wstate.txlog, &entry);
 
+                char strbuff[64];
+                snprintf(strbuff, 64, "PASS: Join transaction %d", msg.tid);
+                shitviz_append(wstate.node_id, strbuff, wstate.vclock);
                 break;
             }
 
@@ -178,7 +187,7 @@ int main(int argc, char ** argv)
                 objstore_sync(wstate.store, wstate.vclock);
 
                 char strbuff[32];
-                snprintf(strbuff, 32, "Set A = %d\n", objstore_get_a(wstate.store));
+                snprintf(strbuff, 32, "Set A = %d", objstore_get_a(wstate.store));
                 shitviz_append(wstate.node_id, strbuff, wstate.vclock);
                 break;
             }
@@ -200,7 +209,7 @@ int main(int argc, char ** argv)
                 printf("B = %d\n", objstore_get_b(wstate.store));
 
                 char strbuff[32];
-                snprintf(strbuff, 32, "Set B = %d\n", objstore_get_b(wstate.store));
+                snprintf(strbuff, 32, "Set B = %d", objstore_get_b(wstate.store));
                 shitviz_append(wstate.node_id, strbuff, wstate.vclock);
                 break;
             }
@@ -224,7 +233,7 @@ int main(int argc, char ** argv)
                 }
 
                 char strbuff[128];
-                snprintf(strbuff, 128, "Set ID = %s\n", objstore_get_id(wstate.store));
+                snprintf(strbuff, 128, "Set ID = %s", objstore_get_id(wstate.store));
                 shitviz_append(wstate.node_id, strbuff, wstate.vclock);
                 break;
             }
@@ -247,6 +256,7 @@ int main(int argc, char ** argv)
 
             case CRASH:
                 /* Crash worker */
+                shitviz_append(wstate.node_id, "Crashing", wstate.vclock);
                 exit(1); 
                 break;
 
@@ -324,7 +334,7 @@ int main(int argc, char ** argv)
             }
 
             default:
-                printf("unknown command\n"); 
+                shitviz_append(wstate.node_id, "Unknown command", wstate.vclock);
                 break;
         }
     }
@@ -352,7 +362,7 @@ void update_rollback(worker_state_t* wstate)
                 objstore_get_b(wstate->store),
                 objstore_get_id(wstate->store));
         }
-        else {
+        else if (entry.type == LOG_BEGIN || entry.type == LOG_ABORT || entry.type == LOG_COMMIT) {
             /* break when we reach commit, abort or begin */
             printf("Rollback completed\n");
 
